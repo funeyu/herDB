@@ -1,10 +1,11 @@
 package utils;
 
 public class Hash {
-	private Hash(){}
-	
-	public static int FNVHash1(byte[] data) {
-		
+    private Hash() {
+    }
+
+    public static int FNVHash1(byte[] data) {
+
         final int p = 16777619;
         int hash = (int) 2166136261L;
         for (byte b : data)

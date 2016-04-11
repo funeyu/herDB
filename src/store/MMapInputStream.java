@@ -7,54 +7,55 @@ import java.io.RandomAccessFile;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 
-/**为了加快文件随机读的操作，将文件映射到内存中
- * 注意： 不能在又读又写的情况下开启映射文件，为了性能映射内存只映射一次，
- * 不能根据文件的追加而实时改变内存；
+/**
+ * 为了加快文件随机读的操作，将文件映射到内存中 注意： 不能在又读又写的情况下开启映射文件，为了性能映射内存只映射一次， 不能根据文件的追加而实时改变内存；
+ * 
  * @author funer
  *
  */
-public class MMapInputStream extends InputOutData{
-	
-	private MappedByteBuffer randomFile; 
-	public MMapInputStream(String pathName){
-		File file = new File(pathName);
-		try {
-			randomFile = new RandomAccessFile(file, "r").getChannel()
-						.map(FileChannel.MapMode.READ_ONLY, 0, file.length());
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
-	
-	public byte[] readFully() throws IOException {
+public class MMapInputStream extends InputOutData {
 
-		return null;
-	}
+    private MappedByteBuffer randomFile;
 
-	public byte[] seek(long offset, int size) throws IOException {
+    public MMapInputStream(String pathName) {
+        File file = new File(pathName);
+        try {
+            randomFile = new RandomAccessFile(file, "r").getChannel().map(FileChannel.MapMode.READ_ONLY, 0,
+                    file.length());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 
-		return null;
-	}
+    public byte[] readFully() throws IOException {
 
-	public long append(byte[] data) throws IOException {
+        return null;
+    }
 
-		return 0;
-	}
-	
-	public void flush(byte[] data) {
-		
-	}
+    public byte[] seek(long offset, int size) throws IOException {
 
-	@Override
-	public byte[] readSequentially(int size) throws IOException {
-		// TODO Auto-generated method stub
-		return null;
-	}
+        return null;
+    }
 
-	@Override
-	public long maxOffSet() {
-		// TODO Auto-generated method stub
-		return 0;
-	}
+    public long append(byte[] data) throws IOException {
+
+        return 0;
+    }
+
+    public void flush(byte[] data) {
+
+    }
+
+    @Override
+    public byte[] readSequentially(int size) throws IOException {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public long maxOffSet() {
+        // TODO Auto-generated method stub
+        return 0;
+    }
 
 }
