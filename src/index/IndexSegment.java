@@ -92,6 +92,7 @@ public class IndexSegment extends ReentrantLock {
                     if (Arrays.equals(oldkey, key)) {
                         attachedslot = Slot.getAttachedSlot(slotBytes);
                         byte[] newslot = Slot.generate(hashcode, fsData.maxOffSet(), attachedslot);
+
                         Slot.replace(bytes, index * Slot.slotSize + 8, newslot);
                         
                         break;
@@ -187,6 +188,7 @@ public class IndexSegment extends ReentrantLock {
 
         // 获取key数据的长度
         int keyLength = NumberPacker.unpackInt(fsData.seek(offset, 4));
+
         return fsData.readSequentially(keyLength);
     }
 
@@ -194,7 +196,7 @@ public class IndexSegment extends ReentrantLock {
      * 索引文件达到full即attachedSlots没有可以再利用 需要扩容, 扩容的时候要加锁操作
      */
     private void resize() {
-        
+
     }
 
 }
