@@ -60,4 +60,15 @@ public class MMapInputStream extends InputOutData {
         return null;
     }
 
+    @Override public InputOutData deleteFile() {
+        
+        return null;
+    }
+
+    @Override
+    public InputOutData createNewFile() throws IOException {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
 }

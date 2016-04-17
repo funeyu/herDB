@@ -75,7 +75,7 @@ public class IndexSegment extends ReentrantLock {
 
         lock();
         try {
-            byte[] slotBytes;
+            byte[] slotBytes;      
             int hc;
             int index = Hash.FNVHash1(key) & (compacity - 1);
             int oldindex;
@@ -215,7 +215,6 @@ public class IndexSegment extends ReentrantLock {
      */
     public void commit() {
         lock();
-
         try {
             close();
         } finally {
@@ -249,23 +248,47 @@ public class IndexSegment extends ReentrantLock {
      * 将内存的index文件flush到磁盘里
      */
     private void close() {
-        fsIndex.flush(bytes);
+        // 写入索引的容量值
+        Slot.replace(bytes, 0, NumberPacker.packInt(compacity));
+        // 写入attachedSlot池中用到哪一个了
+        Slot.replace(bytes, 4, NumberPacker.packInt(current));
+        
+        try {
+            fsIndex.deleteFile().createNewFile()
+                   .flush(bytes);
+        } catch (IOException e) {
+            
+            e.printStackTrace();
+        }
+        bytes = null;
     }
 
     // 测试
     public static void main(String[] args) {
         byte[] key = null;
         try {
-            FSDirectory fsd = FSDirectory.create("her", true);
+            FSDirectory fsd = FSDirectory.open("her");
+//            FSDirectory fsd = FSDirectory.create("her", true);
             IndexSegment segment = IndexSegment.createIndex(fsd, "segment1");
-            for (int i = 0; i < 1200; i++){
-                key = ("key"+i).getBytes();
-                byte[] value = ("value加手机发；" + i).getBytes();
-                int hashcode = Arrays.hashCode(key);
-                segment.put(key, hashcode, value);
-            }
-            byte[] bytes =segment.get("key1189".getBytes());
+//            for (int i = 0; i < 1200; i++){
+//                key = ("key"+i).getBytes();
+//                byte[] value = ("value加手机发；" + i).getBytes();
+//                int hashcode = Arrays.hashCode(key);
+//                segment.put(key, hashcode, value);
+//            }
+//            
+            
+            
+//            key = "key2000".getBytes();
+//            byte[] value = "value200000000000000000".getBytes();
+//            int hashcode = Arrays.hashCode(key);
+//            segment.put(key, hashcode, value);
+            
+            byte[] bytes =segment.get("key2000".getBytes());
             System.out.println(new String(bytes));
+            segment.close();
+            
+            
             
         } catch (Exception e) {
 

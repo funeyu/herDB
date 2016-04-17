@@ -65,5 +65,15 @@ public abstract class InputOutData {
      * @return
      */
     public abstract InputOutData position(long offset) throws IOException;
-
+    
+    /**
+     * 清除该文件磁盘的所有内容
+     */
+    public abstract InputOutData deleteFile();
+    
+    /**
+     * 新建文件
+     * @return
+     */
+    public abstract InputOutData createNewFile() throws IOException;
 }

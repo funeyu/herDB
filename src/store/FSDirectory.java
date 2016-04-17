@@ -54,6 +54,11 @@ public class FSDirectory {
             };
         return lock.lock(10) ? this : null;
     }
+    
+    // 将该目录下的.lock文件删除， 解锁文件夹
+    public void releaseDir(){
+        lock.release();
+    }
 
     private String getPath() {
 
@@ -183,12 +188,17 @@ public class FSDirectory {
 
         private long length;
         private long maxOffSet;
+        private String fileName;
+        private File file;
+        private File directory;
         private RandomAccessFile raf;
 
         public FSDataStream(File dir, String name) throws Exception {
 
             File f = new File(dir, name);
-
+            file = f;
+            directory = dir;
+            fileName = name;
             raf = new RandomAccessFile(f, "rw");
             length = raf.length();
         }
@@ -246,5 +256,21 @@ public class FSDirectory {
             this.raf.seek(offset);
             return this;
         }
+
+        @Override public InputOutData deleteFile() {
+            this.file.delete();
+            return this;
+        }
+
+        @Override public InputOutData createNewFile() throws IOException{
+            
+            File f = new File(directory, fileName);
+            file = f;
+            raf = new RandomAccessFile(f, "rw");
+            length = raf.length();
+            return this;
+        }
+        
+        
     }
 }
