@@ -68,16 +68,11 @@ public final class NumberPacker {
     public static int unpackInt(byte[] bytes) {
 
         int result = 0;
-        int index = 0;
-        for (int offset = 0; offset < 32; offset += 7) {
-            int b = bytes[index++];
-            result |= (b & 0x7F) << offset;
-            if ((b & 0x80) == 0) {
-                return result;
-            }
+        for(int i = 0; i < 4; i++) {
+            result |= ((bytes[i] & 0xFF) << (4 - 1 - i) * 8);
         }
-        throw new Error("Malformed int.");
-
+        
+        return result;
     }
 
     /**
@@ -88,17 +83,17 @@ public final class NumberPacker {
      */
     public static byte[] packInt(int value) {
 
-        if (value < 0) {
-            throw new IllegalArgumentException("negative value: v=" + value);
-        }
         byte[] ba = new byte[4];
-        int i = 1;
-        while ((value & ~0x7FL) != 0) {
-            ba[i - 1] = (byte) (((int) value & 0x7F) | 0x80);
-            value >>>= 7;
-            i++;
+        
+        for (int i = 0; i < 4; i++) {
+            ba[i] = (byte)((value >> 8 * (4 - 1 - i)) & 0xFF);
         }
-        ba[i - 1] = (byte) value;
         return ba;
+    }
+    
+    public static void main(String[]args){
+       byte[] bytes = packInt(698446115);
+       System.out.println(unpackInt(bytes));
+        
     }
 }

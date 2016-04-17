@@ -48,18 +48,18 @@ public final class Slot {
     }
 
     /**
-     * 设置index的slot attachedSlot的下标为attachedslot
+     * 设置索引号为slot的槽attachedSlot 值为attachedslot
      * 
-     * @param index
+     * @param slot
      * @param attachedslot
      * @param bytes
-     *            为索引的全量数据
+     *            为索引的全量内存数据
      */
-    public static void setAttachedSlot(int index, int attachedslot, byte[] bytes) {
+    public static void setAttachedSlot(int slot, int attachedslot, byte[] bytes) {
 
         byte[] attach = NumberPacker.packInt(attachedslot);
         for (int i = 0; i < 4; i++) {
-            bytes[index * slotSize + 8] = attach[i];
+            bytes[slot * slotSize + 8 + 9 + i] = attach[i];
         }
     }
 
@@ -86,7 +86,7 @@ public final class Slot {
     }
 
     /**
-     * 获取该slot下一个slot的id
+     * 获取该slot的后继slot的id
      * 
      * @param bytes
      * @return

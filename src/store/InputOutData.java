@@ -58,5 +58,12 @@ public abstract class InputOutData {
      * @return
      */
     public abstract long maxOffSet();
+    
+    /**
+     * 将文件的指针置于相应的位置
+     * @param offset
+     * @return
+     */
+    public abstract InputOutData position(long offset) throws IOException;
 
 }

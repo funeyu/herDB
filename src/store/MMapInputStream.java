@@ -2,7 +2,6 @@ package store;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.RandomAccessFile;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
@@ -46,16 +45,19 @@ public class MMapInputStream extends InputOutData {
 
     }
 
-    @Override
-    public byte[] readSequentially(int size) throws IOException {
-        // TODO Auto-generated method stub
+    @Override public byte[] readSequentially(int size) throws IOException {
+
         return null;
     }
 
-    @Override
-    public long maxOffSet() {
-        // TODO Auto-generated method stub
+    @Override public long maxOffSet() {
+
         return 0;
+    }
+
+    @Override public InputOutData position(long offset) throws IOException {
+
+        return null;
     }
 
 }

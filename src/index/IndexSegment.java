@@ -30,16 +30,18 @@ public class IndexSegment extends ReentrantLock {
     private final static String INDEXSUFFIX = ".index";
     // 数据文件的后缀
     private final static String DATASUFFIX = ".data";
+    // 扩容不能超过的最大容量
+    private final static int MAXSIZE = 2 << 26;
     // index io操作的入口类
     private InputOutData fsIndex;
     // data io操作的入口类
     private InputOutData fsData;
 
-    public IndexSegment(int compacity, String fileName, int current, byte[] bytes, InputOutData fs,
+    private IndexSegment(int compacity, int current, String fileName, byte[] bytes, InputOutData fs,
             InputOutData fsData) {
         this.compacity = compacity;
-        this.fileName = fileName;
         this.current = current;
+        this.fileName = fileName;
         this.bytes = bytes;
         this.fsIndex = fs;
         this.fsData = fsData;
@@ -60,14 +62,12 @@ public class IndexSegment extends ReentrantLock {
         if (first) {
             // todo:这里的设置应该放在configuration
             byte[] bytes = new byte[(1024 << 1) * Slot.slotSize + 4 + 4];
-            fs.touchFile(fileName);
-            return new IndexSegment((1024 << 1) * Slot.slotSize, fileName, 0, bytes, fsIndex, fsData);
+            return new IndexSegment(1024, 0, fileName, bytes, fsIndex, fsData);
         }
 
         byte[] bytes = fsIndex.readFully();
-        byte[] fourbytes = new byte[4];
-        return new IndexSegment(NumberPacker.unpackInt(Arrays.copyOfRange(bytes, 0, 4)), fileName,
-                NumberPacker.unpackInt(Arrays.copyOfRange(bytes, 4, 8)), bytes, fsIndex, fsData);
+        return new IndexSegment(NumberPacker.unpackInt(Arrays.copyOfRange(bytes, 0, 4)),
+                NumberPacker.unpackInt(Arrays.copyOfRange(bytes, 4, 8)), fileName, bytes, fsIndex, fsData);
     }
 
     // note: hashcode一定要保证不为0, 不然不能根据hc==0说明该slot空
@@ -81,6 +81,7 @@ public class IndexSegment extends ReentrantLock {
             int oldindex;
             byte[] oldkey;
             int attachedslot;
+            boolean isNew = true;
             // 根据index获取该slot的byte[13]
             slotBytes = Arrays.copyOfRange(bytes, index * Slot.slotSize + 8, (index + 1) * Slot.slotSize + 8);
 
@@ -90,37 +91,41 @@ public class IndexSegment extends ReentrantLock {
 
                     // 用新的索引数据替换旧的key数据，
                     if (Arrays.equals(oldkey, key)) {
+                        isNew = false;
                         attachedslot = Slot.getAttachedSlot(slotBytes);
                         byte[] newslot = Slot.generate(hashcode, fsData.maxOffSet(), attachedslot);
 
                         Slot.replace(bytes, index * Slot.slotSize + 8, newslot);
-                        
+
                         break;
                     }
                 }
 
                 if ((attachedslot = Slot.getAttachedSlot(slotBytes)) == 0) {
+                    oldindex = index;
+                    index = current + compacity;
+                    
                     // attachedSlot full开始扩容
-                    if(++current > compacity)
+                    if (++current > compacity)
                         resize();
                     
-                    oldindex = index;
-                    index = ++current + compacity;
-
-                    // 设置上个slot 与该slot的关联
+                    // 设置上个slot 与本slot的关联
                     Slot.setAttachedSlot(oldindex, index, bytes);
-
-                    // 新建一个slot
-                    byte[] newslot = Slot.generate(hashcode, fsData.maxOffSet(), 0);
-
-                    // 替换成新的slot
-                    Slot.replace(bytes, index * Slot.slotSize + 8, newslot);
+                    
+                    slotBytes = Arrays.copyOfRange(bytes, index * Slot.slotSize + 8, (index + 1)* Slot.slotSize + 8);
                 } else {
                     index = Slot.getAttachedSlot(slotBytes);
                     slotBytes = Arrays.copyOfRange(bytes, index * Slot.slotSize + 8, (index + 1) * Slot.slotSize + 8);
                 }
             }
-
+            
+            if(isNew){
+                // 新建一个slot
+                byte[] newslot = Slot.generate(hashcode, fsData.maxOffSet(), 0);
+                // 替换成新的slot
+                Slot.replace(bytes, index * Slot.slotSize + 8, newslot);
+            }
+            
             // 写入key/value的数据到磁盘
             fsData.append(wrapData(key, value));
 
@@ -168,13 +173,54 @@ public class IndexSegment extends ReentrantLock {
     // 根据key查找对应的value，没有则返回null
     public byte[] get(byte[] key) {
 
+        int index = Hash.FNVHash1(key) & (compacity - 1);
+        int hashcode = Arrays.hashCode(key);
+        long offset;
+        int keylen;
+        int valuelen;
+  
+        byte[] slotBytes;
+        
         lock();
         try {
-
+            do {
+                slotBytes = Arrays.copyOfRange(bytes, index * Slot.slotSize + 8, 
+                        (index + 1) * Slot.slotSize + 8);
+                if(Slot.getHashCode(slotBytes) == hashcode) {
+                    offset = Slot.getFileInfo(slotBytes);
+                    try {
+                        keylen = NumberPacker.unpackInt(fsData.position(offset).readSequentially(4));
+                        // note: key的hashcode相等的情况下也有可能key不一致
+                        if(Arrays.equals(fsData.readSequentially(keylen), key)) {
+                            
+                            valuelen = NumberPacker.unpackInt(fsData.readSequentially(4));
+                            byte[] value = fsData.readSequentially(valuelen);
+                            return value;
+                        }
+                    } catch (IOException e) {
+                        
+                        e.printStackTrace();
+                        return null;
+                    }
+                }
+            } while((index = Slot.getAttachedSlot(slotBytes)) != 0);
         } finally {
             unlock();
         }
         return null;
+    }
+
+    /**
+     * 每个阶段的操作最终都要commit，如果在commit阶段，程序在执行扩容的话,就该等待程序执行完成 所以加lock()
+     */
+    public void commit() {
+        lock();
+
+        try {
+            close();
+        } finally {
+            unlock();
+        }
     }
 
     /**
@@ -193,10 +239,39 @@ public class IndexSegment extends ReentrantLock {
     }
 
     /**
-     * 索引文件达到full即attachedSlots没有可以再利用 需要扩容, 扩容的时候要加锁操作
+     * 索引文件达到full即attachedSlots没有可以再利用 需要扩容
      */
     private void resize() {
+        
+    }
 
+    /**
+     * 将内存的index文件flush到磁盘里
+     */
+    private void close() {
+        fsIndex.flush(bytes);
+    }
+
+    // 测试
+    public static void main(String[] args) {
+        byte[] key = null;
+        try {
+            FSDirectory fsd = FSDirectory.create("her", true);
+            IndexSegment segment = IndexSegment.createIndex(fsd, "segment1");
+            for (int i = 0; i < 1200; i++){
+                key = ("key"+i).getBytes();
+                byte[] value = ("value加手机发；" + i).getBytes();
+                int hashcode = Arrays.hashCode(key);
+                segment.put(key, hashcode, value);
+            }
+            byte[] bytes =segment.get("key1189".getBytes());
+            System.out.println(new String(bytes));
+            
+        } catch (Exception e) {
+
+            e.printStackTrace();
+        }
+        
     }
 
 }

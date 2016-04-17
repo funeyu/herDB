@@ -210,8 +210,7 @@ public class FSDirectory {
             }
         }
 
-        @Override
-        public byte[] seek(long offset, int size) throws IOException {
+        @Override public byte[] seek(long offset, int size) throws IOException {
 
             raf.seek(offset);
 
@@ -222,8 +221,7 @@ public class FSDirectory {
             return res;
         }
 
-        @Override
-        public long append(byte[] data) throws IOException {
+        @Override public long append(byte[] data) throws IOException {
 
             long fileLength = raf.length();
             raf.seek(fileLength);
@@ -232,18 +230,21 @@ public class FSDirectory {
             return fileLength + data.length;
         }
 
-        @Override
-        public byte[] readSequentially(int size) throws IOException {
+        @Override public byte[] readSequentially(int size) throws IOException {
 
             byte[] bytes = new byte[size];
             raf.read(bytes);
             return bytes;
         }
 
-        @Override
-        public long maxOffSet() {
+        @Override public long maxOffSet() {
 
             return maxOffSet;
+        }
+
+        @Override public InputOutData position(long offset) throws IOException {
+            this.raf.seek(offset);
+            return this;
         }
     }
 }
