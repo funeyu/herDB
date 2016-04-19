@@ -5,6 +5,8 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.concurrent.locks.ReentrantLock;
 
+import javax.xml.crypto.dsig.CanonicalizationMethod;
+
 import store.FSDirectory;
 import store.InputOutData;
 import utils.Hash;
@@ -30,47 +32,53 @@ public class IndexSegment extends ReentrantLock {
     private final static String INDEXSUFFIX = ".index";
     // 数据文件的后缀
     private final static String DATASUFFIX = ".data";
+    // 临时文件的后缀名
+    private final static String TEMFILESUFFIX =  ".tep";
     // 扩容不能超过的最大容量
     private final static int MAXSIZE = 2 << 26;
     // index io操作的入口类
     private InputOutData fsIndex;
     // data io操作的入口类
     private InputOutData fsData;
+    // FSDirectory的门面
+    private FSDirectory fsd;
     // 读取文件用到的文件块大小 默认先 64KB的大小
     // todo: 设置应该放在相应的配置文件里
-    private int BufferedSize = 1 << 16;
+    private int BufferedSize = 1 << 5;
 
     private IndexSegment(int compacity, int current, String fileName, byte[] bytes, InputOutData fs,
-            InputOutData fsData) {
+            InputOutData fsData, FSDirectory fsd) {
         this.compacity = compacity;
         this.current = current;
         this.fileName = fileName;
         this.bytes = bytes;
         this.fsIndex = fs;
         this.fsData = fsData;
+        this.fsd = fsd;
     }
 
-    public final static IndexSegment createIndex(FSDirectory fs, String fileName) throws Exception {
+    public final static IndexSegment createIndex(FSDirectory fsd, String fileName) throws Exception {
 
         boolean first = false;
         // index文件不存在则新建index文件
-        if (!fs.isExsit(fileName + INDEXSUFFIX) && (first = true))
-            fs.touchFile(fileName + INDEXSUFFIX);
-        InputOutData fsIndex = fs.createDataStream(fileName + INDEXSUFFIX);
+        if (!fsd.isExsit(fileName + INDEXSUFFIX) && (first = true))
+            fsd.touchFile(fileName + INDEXSUFFIX);
+        InputOutData fsIndex = fsd.createDataStream(fileName + INDEXSUFFIX);
 
-        if (!fs.isExsit(fileName + DATASUFFIX))
-            fs.touchFile(fileName + DATASUFFIX);
-        InputOutData fsData = fs.createDataStream(fileName + DATASUFFIX);
+        if (!fsd.isExsit(fileName + DATASUFFIX))
+            fsd.touchFile(fileName + DATASUFFIX);
+        InputOutData fsData = fsd.createDataStream(fileName + DATASUFFIX);
 
         if (first) {
             // todo:这里的设置应该放在configuration
             byte[] bytes = new byte[(1024 << 1) * Slot.slotSize + 4 + 4];
-            return new IndexSegment(1024, 0, fileName, bytes, fsIndex, fsData);
+            return new IndexSegment(1024, 0, fileName, bytes, fsIndex, fsData, fsd);
         }
 
         byte[] bytes = fsIndex.readFully();
         return new IndexSegment(NumberPacker.unpackInt(Arrays.copyOfRange(bytes, 0, 4)),
-                NumberPacker.unpackInt(Arrays.copyOfRange(bytes, 4, 8)), fileName, bytes, fsIndex, fsData);
+                                NumberPacker.unpackInt(Arrays.copyOfRange(bytes, 4, 8)), 
+                                fileName, bytes, fsIndex, fsData, fsd);
     }
 
     // note: hashcode一定要保证不为0, 不然不能根据hc==0说明该slot空
@@ -78,7 +86,7 @@ public class IndexSegment extends ReentrantLock {
 
         lock();
         try {
-            byte[] slotBytes;      
+            byte[] slotBytes;
             int hc;
             int index = Hash.FNVHash1(key) & (compacity - 1);
             int oldindex;
@@ -107,28 +115,28 @@ public class IndexSegment extends ReentrantLock {
                 if ((attachedslot = Slot.getAttachedSlot(slotBytes)) == 0) {
                     oldindex = index;
                     index = current + compacity;
-                    
+
                     // attachedSlot full开始扩容
                     if (++current > compacity)
                         resize();
-                    
+
                     // 设置上个slot 与本slot的关联
                     Slot.setAttachedSlot(oldindex, index, bytes);
-                    
-                    slotBytes = Arrays.copyOfRange(bytes, index * Slot.slotSize + 8, (index + 1)* Slot.slotSize + 8);
+
+                    slotBytes = Arrays.copyOfRange(bytes, index * Slot.slotSize + 8, (index + 1) * Slot.slotSize + 8);
                 } else {
                     index = Slot.getAttachedSlot(slotBytes);
                     slotBytes = Arrays.copyOfRange(bytes, index * Slot.slotSize + 8, (index + 1) * Slot.slotSize + 8);
                 }
             }
-            
-            if(isNew){
+
+            if (isNew) {
                 // 新建一个slot
                 byte[] newslot = Slot.generate(hashcode, fsData.maxOffSet(), 0);
                 // 替换成新的slot
                 Slot.replace(bytes, index * Slot.slotSize + 8, newslot);
             }
-            
+
             // 写入key/value的数据到磁盘
             fsData.append(wrapData(key, value));
 
@@ -150,10 +158,10 @@ public class IndexSegment extends ReentrantLock {
 
         // 先写入该wrapedData的长度
         byte[] datalength = NumberPacker.packInt(key.length + value.length + 12);
-        for(int i = 0; i < 4; i++) {
+        for (int i = 0; i < 4; i++) {
             wrappedData[i] = datalength[i];
         }
-        
+
         // 写入key的长度
         byte[] keylength = NumberPacker.packInt(key.length);
         for (int i = 0; i < 4; i++) {
@@ -182,37 +190,36 @@ public class IndexSegment extends ReentrantLock {
     // 根据key查找对应的value，没有则返回null
     public byte[] get(byte[] key) {
 
-        int index = Hash.FNVHash1(key) & (compacity - 1);
+        int index = Hash.FNVHash1(key) & compacity - 1;
         int hashcode = Arrays.hashCode(key);
         long offset;
         int keylen;
         int valuelen;
-  
+
         byte[] slotBytes;
-        
+
         lock();
         try {
             do {
-                slotBytes = Arrays.copyOfRange(bytes, index * Slot.slotSize + 8, 
-                        (index + 1) * Slot.slotSize + 8);
-                if(Slot.getHashCode(slotBytes) == hashcode) {
+                slotBytes = Arrays.copyOfRange(bytes, index * Slot.slotSize + 8, (index + 1) * Slot.slotSize + 8);
+                if (Slot.getHashCode(slotBytes) == hashcode) {
                     offset = Slot.getFileInfo(slotBytes);
                     try {
-                        keylen = NumberPacker.unpackInt(fsData.position(offset+4).readSequentially(4));
+                        keylen = NumberPacker.unpackInt(fsData.position(offset + 4).readSequentially(4));
                         // note: key的hashcode相等的情况下也有可能key不一致
-                        if(Arrays.equals(fsData.readSequentially(keylen), key)) {
-                            
+                        if (Arrays.equals(fsData.readSequentially(keylen), key)) {
+
                             valuelen = NumberPacker.unpackInt(fsData.readSequentially(4));
                             byte[] value = fsData.readSequentially(valuelen);
                             return value;
                         }
                     } catch (IOException e) {
-                        
+
                         e.printStackTrace();
                         return null;
                     }
                 }
-            } while((index = Slot.getAttachedSlot(slotBytes)) != 0);
+            } while ((index = Slot.getAttachedSlot(slotBytes)) != 0);
         } finally {
             unlock();
         }
@@ -248,28 +255,124 @@ public class IndexSegment extends ReentrantLock {
 
     /**
      * 索引文件达到full即attachedSlots没有可以再利用 需要扩容
-     * @throws IOException 
+     * 
+     * @throws IOException
      */
     private void resize() throws IOException {
-        
+
         BufferedBlock readingBlock = BufferedBlock.allocate(BufferedSize);
         BufferedBlock compressingBlock = BufferedBlock.allocate(BufferedSize);
         
-        long offset = 0l;
+        //扩充后的索引内存数组
+        byte[] newBytes = new byte[(compacity << 2) * Slot.slotSize + 8];
+        InputOutData temData = fsd.createDataStream(fileName + TEMFILESUFFIX);
+        long oldOffset = 0l;
+        long newOffset = 0l;
         int distance = 0;
-        boolean isDeleted = false;
-        
-        while(readingBlock.setLimit( fsData.readBlock(readingBlock.getBlock()) ) != -1) {
-            
+        boolean isValid = true;
+        // 标记磁盘的dataLength在上个block块的字节数组
+        byte[] splitedByte = null;
+        int itemLength;
+        byte[] fourBytes = new byte[4];
+        // 标记每个key的长度
+        int keyLength;
+        // 相应key的字节数组的数据
+        byte[] keyBytes;
+
+        while (readingBlock.setLimit(fsData.readBlock(readingBlock.getBlock())) != -1) {
+
+            if (splitedByte == null && isValid) {
+                compressingBlock.wrap(readingBlock.getBytes(distance));
+                
+                newOffset += distance;
+                oldOffset += distance;
+            } else if (splitedByte != null) {
+                
+                // 获取dataLength字节数组的另一半
+                byte[] other = readingBlock.getBytes(4 - splitedByte.length);
+                
+                System.arraycopy(splitedByte, 0, fourBytes, 0, splitedByte.length);
+                System.arraycopy(other, 0, fourBytes, splitedByte.length, other.length);
+                itemLength = NumberPacker.unpackInt(fourBytes);
+                
+                readingBlock.position(other.length);
+                keyLength = readingBlock.getInt();
+                keyBytes = readingBlock.getBytes(keyLength);
+                
+                if(isItemValid(keyBytes, oldOffset)){
+                    
+                    putNative(keyBytes, compressingBlock.getOffset(), newBytes);
+                    compressingBlock.wrap(splitedByte)
+                                    .wrap(other)
+                                    .wrap(readingBlock.skip(other.length).getBytes(itemLength - 4));
+                    
+                }
+            }
+            while (readingBlock.getLimit() > readingBlock.getPosition()) {
+                readingBlock.position(position);
+            }
             offset += readingBlock.getLimit();
         }
     }
-    
+
+    // 不加锁的put 只在扩容或者campact的时候调用
+    private void putNative(byte[] key, long offset, byte[]newBytes){
+        
+        byte[] slotBytes;
+        int hashcode = Arrays.hashCode(key);
+        int hc;
+        int index = Hash.FNVHash1(key) & (compacity - 1);
+        int oldindex;
+        byte[] oldkey;
+        int attachedslot;
+        boolean isNew = true;
+        // 根据index获取该slot的byte[13]
+        slotBytes = Arrays.copyOfRange(newBytes, index * Slot.slotSize + 8, (index + 1) * Slot.slotSize + 8);
+
+        while ((hc = Slot.getHashCode(slotBytes)) != 0) {
+            
+            if ((attachedslot = Slot.getAttachedSlot(slotBytes)) == 0) {
+                oldindex = index;
+                index = current + compacity;
+                
+                // 设置上个slot 与本slot的关联
+                Slot.setAttachedSlot(oldindex, index, newBytes);
+
+                slotBytes = Arrays.copyOfRange(newBytes, index * Slot.slotSize + 8, (index + 1) * Slot.slotSize + 8);
+            } else {
+                index = Slot.getAttachedSlot(slotBytes);
+                slotBytes = Arrays.copyOfRange(newBytes, index * Slot.slotSize + 8, (index + 1) * Slot.slotSize + 8);
+            }
+        }
+
+        if (isNew) {
+            // 新建一个slot
+            byte[] newslot = Slot.generate(hashcode, fsData.maxOffSet(), 0);
+            // 替换成新的slot
+            Slot.replace(newBytes, index * Slot.slotSize + 8, newslot);
+        }
+        
+    }
     /**
-     * 从磁盘读取每个item，并在索引内存里判断其是否被删除
-     * @return true: 被删除，无效的item； false：有效的item
+     * 从磁盘读取每个item，并在索引内存里判断其是否有效
+     * 
+     * @return true: 无效的item； false：有效的item
      */
-    private boolean isItemDeleted(){
+    private boolean isItemValid(byte[] key, long offset) {
+
+        int index = Hash.FNVHash1(key) & compacity - 1;
+        int hashcode = Arrays.hashCode(key);
+        byte[] slotBytes;
+        
+        do {
+            slotBytes = Arrays.copyOfRange(bytes, index * Slot.slotSize + 8, (index + 1) * Slot.slotSize + 8);
+            if (Slot.getHashCode(slotBytes) == hashcode) {
+                long findOffset = Slot.getFileInfo(slotBytes);
+                if(findOffset == offset){
+                    return true;
+                }
+            }
+        } while ((index = Slot.getAttachedSlot(slotBytes)) != 0);
         
         return false;
     }
@@ -282,11 +385,11 @@ public class IndexSegment extends ReentrantLock {
         Slot.replace(bytes, 0, NumberPacker.packInt(compacity));
         // 写入attachedSlot池中用到哪一个了
         Slot.replace(bytes, 4, NumberPacker.packInt(current));
-        
+
         try {
             fsIndex.deleteFile().createNewFile().flush(bytes);
         } catch (IOException e) {
-            
+
             e.printStackTrace();
         }
         bytes = null;
@@ -296,34 +399,35 @@ public class IndexSegment extends ReentrantLock {
     public static void main(String[] args) {
         byte[] key = null;
         try {
-//            FSDirectorytory fsd = FSDirectory.open("her");
+            // FSDirectorytory fsd = FSDirectory.open("her");
             FSDirectory fsd = FSDirectory.create("her", true);
             IndexSegment segment = IndexSegment.createIndex(fsd, "segment1");
-            for (int i = 0; i < 1200; i++){
-                key = ("key"+i).getBytes();
-                byte[] value = ("value加手机发；" + i).getBytes();
+            for (int i = 0; i < 10; i++) {
+                key = ("key" + i).getBytes();
+                byte[] value = ("old value" + i).getBytes();
                 int hashcode = Arrays.hashCode(key);
                 segment.put(key, hashcode, value);
             }
-//            
             
-            
-//            key = "key2000".getBytes();
-//            byte[] value = "value200000000000000000".getBytes();
-//            int hashcode = Arrays.hashCode(key);
-//            segment.put(key, hashcode, value);
-            
-            byte[] bytes =segment.get("key200".getBytes());
-            System.out.println(new String(bytes));
+            for (int i = 0; i < 10; i++) {
+                key = ("key" + i).getBytes();
+                byte[] value = ("new value" + i).getBytes();
+                int hashcode = Arrays.hashCode(key);
+                segment.put(key, hashcode, value);
+            }
+            //
+
+            // key = "key2000".getBytes();
+            // byte[] value = "value200000000000000000".getBytes();
+            // int hashcode = Arrays.hashCode(key);
+            // segment.put(key, hashcode, value);
             segment.close();
-            
-            
-            
+
         } catch (Exception e) {
 
             e.printStackTrace();
         }
-        
+
     }
 
 }
