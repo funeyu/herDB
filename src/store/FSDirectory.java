@@ -200,7 +200,7 @@ public class FSDirectory {
             directory = dir;
             fileName = name;
             raf = new RandomAccessFile(f, "rw");
-            length = raf.length();
+            maxOffSet = length = raf.length();
         }
 
         public byte[] readFully() throws IOException {
@@ -269,6 +269,11 @@ public class FSDirectory {
             raf = new RandomAccessFile(f, "rw");
             length = raf.length();
             return this;
+        }
+
+        @Override public int readBlock(byte[] block) throws IOException {
+            
+            return this.raf.read(block);
         }
         
         

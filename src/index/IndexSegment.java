@@ -36,6 +36,9 @@ public class IndexSegment extends ReentrantLock {
     private InputOutData fsIndex;
     // data io操作的入口类
     private InputOutData fsData;
+    // 读取文件用到的文件块大小 默认先 64KB的大小
+    // todo: 设置应该放在相应的配置文件里
+    private int BufferedSize = 1 << 16;
 
     private IndexSegment(int compacity, int current, String fileName, byte[] bytes, InputOutData fs,
             InputOutData fsData) {
@@ -143,31 +146,37 @@ public class IndexSegment extends ReentrantLock {
      */
     private byte[] wrapData(byte[] key, byte[] value) {
 
-        byte[] wrapedData = new byte[key.length + value.length + 8];
+        byte[] wrappedData = new byte[key.length + value.length + 12];
 
-        // 先写入key的长度
+        // 先写入该wrapedData的长度
+        byte[] datalength = NumberPacker.packInt(key.length + value.length + 12);
+        for(int i = 0; i < 4; i++) {
+            wrappedData[i] = datalength[i];
+        }
+        
+        // 写入key的长度
         byte[] keylength = NumberPacker.packInt(key.length);
         for (int i = 0; i < 4; i++) {
-            wrapedData[i] = keylength[i];
+            wrappedData[i + 4] = keylength[i];
         }
 
         // 写入key的数据
         for (int i = 0, length = key.length; i < length; i++) {
-            wrapedData[i + 4] = key[i];
+            wrappedData[i + 8] = key[i];
         }
 
         // 写入value的长度
         byte[] valuelength = NumberPacker.packInt(value.length);
         for (int i = 0; i < 4; i++) {
-            wrapedData[key.length + 4 + i] = valuelength[i];
+            wrappedData[key.length + 8 + i] = valuelength[i];
         }
 
         // 写入value的数据
         for (int i = 0, length = value.length; i < length; i++) {
-            wrapedData[key.length + 8 + i] = value[i];
+            wrappedData[key.length + 12 + i] = value[i];
         }
 
-        return wrapedData;
+        return wrappedData;
     }
 
     // 根据key查找对应的value，没有则返回null
@@ -189,7 +198,7 @@ public class IndexSegment extends ReentrantLock {
                 if(Slot.getHashCode(slotBytes) == hashcode) {
                     offset = Slot.getFileInfo(slotBytes);
                     try {
-                        keylen = NumberPacker.unpackInt(fsData.position(offset).readSequentially(4));
+                        keylen = NumberPacker.unpackInt(fsData.position(offset+4).readSequentially(4));
                         // note: key的hashcode相等的情况下也有可能key不一致
                         if(Arrays.equals(fsData.readSequentially(keylen), key)) {
                             
@@ -239,9 +248,30 @@ public class IndexSegment extends ReentrantLock {
 
     /**
      * 索引文件达到full即attachedSlots没有可以再利用 需要扩容
+     * @throws IOException 
      */
-    private void resize() {
+    private void resize() throws IOException {
         
+        BufferedBlock readingBlock = BufferedBlock.allocate(BufferedSize);
+        BufferedBlock compressingBlock = BufferedBlock.allocate(BufferedSize);
+        
+        long offset = 0l;
+        int distance = 0;
+        boolean isDeleted = false;
+        
+        while(readingBlock.setLimit( fsData.readBlock(readingBlock.getBlock()) ) != -1) {
+            
+            offset += readingBlock.getLimit();
+        }
+    }
+    
+    /**
+     * 从磁盘读取每个item，并在索引内存里判断其是否被删除
+     * @return true: 被删除，无效的item； false：有效的item
+     */
+    private boolean isItemDeleted(){
+        
+        return false;
     }
 
     /**
@@ -254,8 +284,7 @@ public class IndexSegment extends ReentrantLock {
         Slot.replace(bytes, 4, NumberPacker.packInt(current));
         
         try {
-            fsIndex.deleteFile().createNewFile()
-                   .flush(bytes);
+            fsIndex.deleteFile().createNewFile().flush(bytes);
         } catch (IOException e) {
             
             e.printStackTrace();
@@ -267,15 +296,15 @@ public class IndexSegment extends ReentrantLock {
     public static void main(String[] args) {
         byte[] key = null;
         try {
-            FSDirectory fsd = FSDirectory.open("her");
-//            FSDirectory fsd = FSDirectory.create("her", true);
+//            FSDirectorytory fsd = FSDirectory.open("her");
+            FSDirectory fsd = FSDirectory.create("her", true);
             IndexSegment segment = IndexSegment.createIndex(fsd, "segment1");
-//            for (int i = 0; i < 1200; i++){
-//                key = ("key"+i).getBytes();
-//                byte[] value = ("value加手机发；" + i).getBytes();
-//                int hashcode = Arrays.hashCode(key);
-//                segment.put(key, hashcode, value);
-//            }
+            for (int i = 0; i < 1200; i++){
+                key = ("key"+i).getBytes();
+                byte[] value = ("value加手机发；" + i).getBytes();
+                int hashcode = Arrays.hashCode(key);
+                segment.put(key, hashcode, value);
+            }
 //            
             
             
@@ -284,7 +313,7 @@ public class IndexSegment extends ReentrantLock {
 //            int hashcode = Arrays.hashCode(key);
 //            segment.put(key, hashcode, value);
             
-            byte[] bytes =segment.get("key2000".getBytes());
+            byte[] bytes =segment.get("key200".getBytes());
             System.out.println(new String(bytes));
             segment.close();
             

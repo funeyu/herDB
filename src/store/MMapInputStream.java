@@ -71,4 +71,9 @@ public class MMapInputStream extends InputOutData {
         return null;
     }
 
+    @Override public int readBlock(byte[] block) {
+        // TODO Auto-generated method stub
+        return 0;
+    }
+
 }

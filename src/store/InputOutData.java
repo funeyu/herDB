@@ -76,4 +76,6 @@ public abstract class InputOutData {
      * @return
      */
     public abstract InputOutData createNewFile() throws IOException;
+    
+    public abstract int readBlock(byte[] block) throws IOException;
 }
