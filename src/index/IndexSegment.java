@@ -255,38 +255,37 @@ public class IndexSegment extends ReentrantLock {
 
     /**
      * 索引文件达到full即attachedSlots没有可以再利用 需要扩容
-     * 
-     * @throws IOException
+     * @throws Exception 
      */
-    private void resize() throws IOException {
+    private void resize() throws Exception {
 
         if((campacity << 2) > MAXSIZE){
             throw new IllegalArgumentException(
                     "The comapacity:`" + campacity + "` is reaching its maxsize and can`t expend anymore");
         }
+        
         BufferedBlock readingBlock = BufferedBlock.allocate(BufferedSize);
         BufferedBlock compressingBlock = BufferedBlock.allocate(BufferedSize);
-        
-        //扩充后的索引内存数组
-        byte[] newBytes = new byte[(campacity << 2) * Slot.slotSize + 8];
         InputOutData temData = fsd.createDataStream(fileName + TEMFILESUFFIX);
-        int distance = 0;
-        boolean isValid = true;
+        
+        // 扩充后的内存索引数组
+        byte[] newBytes = new byte[(campacity << 2) * Slot.slotSize + 8];
         // 标记磁盘的dataLength在上个block块的字节数组
         byte[] splitedByte = null;
+        // 标记splitedByte在下一个block的长度
+        int distance = 0;
         int itemLength;
         byte[] fourBytes = new byte[4];
         // 标记每个key的长度
         int keyLength;
         // 相应key的字节数组的数据
         byte[] keyBytes;
+        //　将分开的字节数组合并成joinedBytes
+        byte[] joinedBytes;
 
         while (readingBlock.setLimit(fsData.readBlock(readingBlock.getBlock())) != -1) {
             
-            if (splitedByte == null && isValid) {
-                compressingBlock.wrap(readingBlock.getBytes(distance));
-
-            } else if (splitedByte != null) {
+            if (splitedByte != null) {
                 
                 // 获取dataLength字节数组的另一半
                 byte[] other = readingBlock.getBytes(4 - splitedByte.length);
@@ -308,20 +307,40 @@ public class IndexSegment extends ReentrantLock {
                     
                 }
             }
-            while (readingBlock.getLimit() > readingBlock.getPosition()) {
-                itemLength = readingBlock.getInt();
+            
+            while ( readingBlock.left() > 0) {
                 
-                if( readingBlock.left() > itemLength){
+                if( readingBlock.left() > 4){
+                    long offset = readingBlock.getOffset();
                     
+                    itemLength = readingBlock.getInt();
+                    
+                    if(readingBlock.left() + 4 >= itemLength){
+                        keyLength = readingBlock.getInt();
+                        keyBytes = readingBlock.getBytes(keyLength);
+                        
+                        //　需要添加到compressingBlock
+                        if(isItemValid(keyBytes, offset)){
+                            
+                            long newOffset = compressingBlock.getOffset();
+                            putNative(keyBytes, newOffset, newBytes);
+                        }
+                        
+                        continue;
+                    }
+                } else {
+                    
+                    //　剩下所有的字节数组
+                    splitedByte = readingBlock.leftBytes();
+                    break;
                 }
-                
-                readingBlock.position(position);
             }
-            offset += readingBlock.getLimit();
+            
+            temData.append(compressingBlock.pour());
         }
     }
 
-    // 不加锁的put 只在扩容或者campact的时候调用
+    // 不加锁的put 只在扩容或者campact的时候调用,添加所以信息
     private void putNative(byte[] key, long offset, byte[]newBytes){
         
         byte[] slotBytes;

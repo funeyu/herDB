@@ -114,6 +114,24 @@ public final class BufferedBlock {
         
         return limit - position;
     }
+    
+    /**
+     * 返回剩余的字节数组
+     * @return
+     */
+    public byte[] leftBytes(){
+        
+        //　说明没有剩余，　item没被分在两个block里
+        if(position == limit) {
+            return null;
+        }
+        
+        int oldPosition = position;
+        position = limit;
+        
+        return Arrays.copyOfRange(container, oldPosition, limit);
+    }
+    
     // 将data的有效的字节数组全部倒出
     public byte[] pour(){
         
