@@ -36,9 +36,9 @@ public class MMapInputStream extends InputOutData {
         return null;
     }
 
-    public long append(byte[] data) throws IOException {
+    public InputOutData append(byte[] data) throws IOException {
 
-        return 0;
+        return this;
     }
 
     public void flush(byte[] data) {

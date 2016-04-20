@@ -9,6 +9,7 @@ import javax.xml.crypto.dsig.CanonicalizationMethod;
 
 import store.FSDirectory;
 import store.InputOutData;
+import utils.Bytes;
 import utils.Hash;
 import utils.NumberPacker;
 
@@ -138,53 +139,11 @@ public class IndexSegment extends ReentrantLock {
             }
 
             // 写入key/value的数据到磁盘
-            fsData.append(wrapData(key, value));
+            fsData.append(Bytes.wrapData(key, value));
 
         } finally {
             unlock();
         }
-    }
-
-    /**
-     * 将key 与 value打包成byte[]返回
-     * 
-     * @param key
-     * @param value
-     * @return
-     */
-    private byte[] wrapData(byte[] key, byte[] value) {
-
-        byte[] wrappedData = new byte[key.length + value.length + 12];
-
-        // 先写入该wrapedData的长度
-        byte[] datalength = NumberPacker.packInt(key.length + value.length + 12);
-        for (int i = 0; i < 4; i++) {
-            wrappedData[i] = datalength[i];
-        }
-
-        // 写入key的长度
-        byte[] keylength = NumberPacker.packInt(key.length);
-        for (int i = 0; i < 4; i++) {
-            wrappedData[i + 4] = keylength[i];
-        }
-
-        // 写入key的数据
-        for (int i = 0, length = key.length; i < length; i++) {
-            wrappedData[i + 8] = key[i];
-        }
-
-        // 写入value的长度
-        byte[] valuelength = NumberPacker.packInt(value.length);
-        for (int i = 0; i < 4; i++) {
-            wrappedData[key.length + 8 + i] = valuelength[i];
-        }
-
-        // 写入value的数据
-        for (int i = 0, length = value.length; i < length; i++) {
-            wrappedData[key.length + 12 + i] = value[i];
-        }
-
-        return wrappedData;
     }
 
     // 根据key查找对应的value，没有则返回null
@@ -274,43 +233,67 @@ public class IndexSegment extends ReentrantLock {
         byte[] splitedByte = null;
         // 标记splitedByte在下一个block的长度
         int distance = 0;
-        int itemLength;
+        int itemLength = 0;
         byte[] fourBytes = new byte[4];
         // 标记每个key的长度
-        int keyLength;
+        int keyLength = 0;
         // 相应key的字节数组的数据
-        byte[] keyBytes;
-        //　将分开的字节数组合并成joinedBytes
-        byte[] joinedBytes;
+        byte[] keyBytes = null;
+        // 遍历文件内容， 记录文件偏移
+        long oldOffset = 0; 
 
         while (readingBlock.setLimit(fsData.readBlock(readingBlock.getBlock())) != -1) {
             
             if (splitedByte != null) {
                 
                 // 获取dataLength字节数组的另一半
-                byte[] other = readingBlock.getBytes(4 - splitedByte.length);
-                
-                System.arraycopy(splitedByte, 0, fourBytes, 0, splitedByte.length);
-                System.arraycopy(other, 0, fourBytes, splitedByte.length, other.length);
-                itemLength = NumberPacker.unpackInt(fourBytes);
-                
-                readingBlock.position(other.length);
-                keyLength = readingBlock.getInt();
-                keyBytes = readingBlock.getBytes(keyLength);
-                
-                if(isItemValid(keyBytes, readingBlock.getOffset())){
+                if(splitedByte.length < 4) {
+                    byte[] other = readingBlock.getBytes(4 - splitedByte.length);
                     
-                    putNative(keyBytes, compressingBlock.getOffset(), newBytes);
-                    compressingBlock.wrap(splitedByte)
-                                    .wrap(other)
-                                    .wrap(readingBlock.skip(other.length).getBytes(itemLength - 4));
+                    System.arraycopy(splitedByte, 0, fourBytes, 0, splitedByte.length);
+                    System.arraycopy(other, 0, fourBytes, splitedByte.length, other.length);
+                    itemLength = NumberPacker.unpackInt(fourBytes);
                     
+                    keyLength = readingBlock.getInt();
+                    keyBytes = readingBlock.getBytes(keyLength);
+                    
+                    int valueLength = readingBlock.getInt();
+                    byte[] valueBytes = readingBlock.getBytes(valueLength);
+                    
+                   if(isItemValid(keyBytes, oldOffset)){
+                       putNative(keyBytes, oldOffset, newBytes);
+                       compressingBlock.incOffset(itemLength);
+                       temData.append(NumberPacker.packInt(keyLength))
+                              .append(keyBytes)
+                              .append(NumberPacker.packInt(valueLength))
+                              .append(valueBytes);
+  
+                   }
+                } else {
+                    // splitedByte.length > 4
+                    itemLength = NumberPacker.unpackInt(new byte[]{
+                       splitedByte[0],
+                       splitedByte[1],
+                       splitedByte[2],
+                       splitedByte[3]
+                    });
+                    // 剩余的bytes长度
+                    int otherLength = itemLength - splitedByte.length;
+                    // 将分开的字节数组合并成joinedBytes
+                    byte[] joinedBytes = Bytes.join(splitedByte, readingBlock.getBytes(otherLength));
+                    byte[] key = Bytes.extractKey(joinedBytes);
+                    
+                    if(isItemValid(key, oldOffset)){
+                        putNative(key, oldOffset, newBytes);
+                        compressingBlock.incOffset(itemLength);
+                        temData.append(joinedBytes);
+                    }
                 }
             }
             
             while ( readingBlock.left() > 0) {
                 
-                if( readingBlock.left() > 4){
+                if( readingBlock.left() >= 4){
                     long offset = readingBlock.getOffset();
                     
                     itemLength = readingBlock.getInt();
@@ -327,10 +310,17 @@ public class IndexSegment extends ReentrantLock {
                         }
                         
                         continue;
+                    } else {
+                        // 记录此刻的文件偏移
+                        oldOffset = readingBlock.getOffset();
+                        splitedByte = readingBlock.leftBytes();
+                        break;
                     }
                 } else {
-                    
-                    //　剩下所有的字节数组
+                    // 记录此刻的文件偏移
+                    oldOffset = readingBlock.getOffset();
+                    // 剩下所有的字节数组, 此byte[] 的长度小于4
+                    // 所以其itemLength的字节数组都被分割成在两个BufferedBlock
                     splitedByte = readingBlock.leftBytes();
                     break;
                 }

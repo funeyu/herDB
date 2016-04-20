@@ -231,13 +231,13 @@ public class FSDirectory {
             return res;
         }
 
-        @Override public long append(byte[] data) throws IOException {
+        @Override public FSDataStream append(byte[] data) throws IOException {
 
             long fileLength = raf.length();
             raf.seek(fileLength);
             raf.write(data);
             maxOffSet += data.length;
-            return fileLength + data.length;
+            return this;
         }
 
         @Override public byte[] readSequentially(int size) throws IOException {

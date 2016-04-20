@@ -35,12 +35,12 @@ public final class BufferedBlock {
         
         return container;
     }
-
-    public void position(int position){
-        
-        this.position = position;
-    }
     
+    public void advance(int skip){
+        
+        position += skip;
+        offset += skip;
+    }
     public int getPosition(){
         
         return this.position;
@@ -49,7 +49,7 @@ public final class BufferedBlock {
     //获取当前position位置的int数字
     public int getInt(){
         
-        position(this.position + 4);
+        advance(this.position + 4);
         return NumberPacker.unpackInt(new byte[]{
             container[position],
             container[position + 1],
@@ -66,7 +66,7 @@ public final class BufferedBlock {
         }
         
         int position = getPosition();
-        position(position + span);
+        advance(position + span);
         return Arrays.copyOfRange(container, position, position+ span);
     }
     
@@ -128,6 +128,7 @@ public final class BufferedBlock {
         
         int oldPosition = position;
         position = limit;
+        offset += limit - position;
         
         return Arrays.copyOfRange(container, oldPosition, limit);
     }
@@ -144,4 +145,8 @@ public final class BufferedBlock {
         return offset;
     }
   
+    public void incOffset(int skips){
+        
+        offset += skips;
+    }
 }

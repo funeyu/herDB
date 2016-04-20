@@ -42,7 +42,7 @@ public abstract class InputOutData {
      * @param data
      * @return 追加完数据后
      */
-    public abstract long append(byte[] data) throws IOException;
+    public abstract InputOutData append(byte[] data) throws IOException;
 
     /**
      * 顺序读取文件
