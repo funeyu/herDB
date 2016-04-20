@@ -22,7 +22,7 @@ public class IndexSegment extends ReentrantLock {
     // 索引在内存中的字节数组
     private byte[] bytes;
     // slotSize 的 1/2,这个值用来与做&hash计算得出index
-    private int compacity;
+    private int campacity;
     // 标记attachedSlots里用到哪一个attachedSlot
     private int current;
     // 为文件的名称，这里索引文件与数据文件文件名称一致
@@ -46,9 +46,9 @@ public class IndexSegment extends ReentrantLock {
     // todo: 设置应该放在相应的配置文件里
     private int BufferedSize = 1 << 5;
 
-    private IndexSegment(int compacity, int current, String fileName, byte[] bytes, InputOutData fs,
+    private IndexSegment(int campacity, int current, String fileName, byte[] bytes, InputOutData fs,
             InputOutData fsData, FSDirectory fsd) {
-        this.compacity = compacity;
+        this.campacity = campacity;
         this.current = current;
         this.fileName = fileName;
         this.bytes = bytes;
@@ -88,7 +88,7 @@ public class IndexSegment extends ReentrantLock {
         try {
             byte[] slotBytes;
             int hc;
-            int index = Hash.FNVHash1(key) & (compacity - 1);
+            int index = Hash.FNVHash1(key) & (campacity - 1);
             int oldindex;
             byte[] oldkey;
             int attachedslot;
@@ -114,10 +114,10 @@ public class IndexSegment extends ReentrantLock {
 
                 if ((attachedslot = Slot.getAttachedSlot(slotBytes)) == 0) {
                     oldindex = index;
-                    index = current + compacity;
+                    index = current + campacity;
 
                     // attachedSlot full开始扩容
-                    if (++current > compacity)
+                    if (++current > campacity)
                         resize();
 
                     // 设置上个slot 与本slot的关联
@@ -190,7 +190,7 @@ public class IndexSegment extends ReentrantLock {
     // 根据key查找对应的value，没有则返回null
     public byte[] get(byte[] key) {
 
-        int index = Hash.FNVHash1(key) & compacity - 1;
+        int index = Hash.FNVHash1(key) & campacity - 1;
         int hashcode = Arrays.hashCode(key);
         long offset;
         int keylen;
@@ -260,14 +260,16 @@ public class IndexSegment extends ReentrantLock {
      */
     private void resize() throws IOException {
 
+        if((campacity << 2) > MAXSIZE){
+            throw new IllegalArgumentException(
+                    "The comapacity:`" + campacity + "` is reaching its maxsize and can`t expend anymore");
+        }
         BufferedBlock readingBlock = BufferedBlock.allocate(BufferedSize);
         BufferedBlock compressingBlock = BufferedBlock.allocate(BufferedSize);
         
         //扩充后的索引内存数组
-        byte[] newBytes = new byte[(compacity << 2) * Slot.slotSize + 8];
+        byte[] newBytes = new byte[(campacity << 2) * Slot.slotSize + 8];
         InputOutData temData = fsd.createDataStream(fileName + TEMFILESUFFIX);
-        long oldOffset = 0l;
-        long newOffset = 0l;
         int distance = 0;
         boolean isValid = true;
         // 标记磁盘的dataLength在上个block块的字节数组
@@ -280,12 +282,10 @@ public class IndexSegment extends ReentrantLock {
         byte[] keyBytes;
 
         while (readingBlock.setLimit(fsData.readBlock(readingBlock.getBlock())) != -1) {
-
+            
             if (splitedByte == null && isValid) {
                 compressingBlock.wrap(readingBlock.getBytes(distance));
-                
-                newOffset += distance;
-                oldOffset += distance;
+
             } else if (splitedByte != null) {
                 
                 // 获取dataLength字节数组的另一半
@@ -299,7 +299,7 @@ public class IndexSegment extends ReentrantLock {
                 keyLength = readingBlock.getInt();
                 keyBytes = readingBlock.getBytes(keyLength);
                 
-                if(isItemValid(keyBytes, oldOffset)){
+                if(isItemValid(keyBytes, readingBlock.getOffset())){
                     
                     putNative(keyBytes, compressingBlock.getOffset(), newBytes);
                     compressingBlock.wrap(splitedByte)
@@ -309,6 +309,12 @@ public class IndexSegment extends ReentrantLock {
                 }
             }
             while (readingBlock.getLimit() > readingBlock.getPosition()) {
+                itemLength = readingBlock.getInt();
+                
+                if( readingBlock.left() > itemLength){
+                    
+                }
+                
                 readingBlock.position(position);
             }
             offset += readingBlock.getLimit();
@@ -321,7 +327,7 @@ public class IndexSegment extends ReentrantLock {
         byte[] slotBytes;
         int hashcode = Arrays.hashCode(key);
         int hc;
-        int index = Hash.FNVHash1(key) & (compacity - 1);
+        int index = Hash.FNVHash1(key) & (campacity - 1);
         int oldindex;
         byte[] oldkey;
         int attachedslot;
@@ -333,7 +339,7 @@ public class IndexSegment extends ReentrantLock {
             
             if ((attachedslot = Slot.getAttachedSlot(slotBytes)) == 0) {
                 oldindex = index;
-                index = current + compacity;
+                index = current + campacity;
                 
                 // 设置上个slot 与本slot的关联
                 Slot.setAttachedSlot(oldindex, index, newBytes);
@@ -360,7 +366,7 @@ public class IndexSegment extends ReentrantLock {
      */
     private boolean isItemValid(byte[] key, long offset) {
 
-        int index = Hash.FNVHash1(key) & compacity - 1;
+        int index = Hash.FNVHash1(key) & campacity - 1;
         int hashcode = Arrays.hashCode(key);
         byte[] slotBytes;
         
@@ -382,7 +388,7 @@ public class IndexSegment extends ReentrantLock {
      */
     private void close() {
         // 写入索引的容量值
-        Slot.replace(bytes, 0, NumberPacker.packInt(compacity));
+        Slot.replace(bytes, 0, NumberPacker.packInt(campacity));
         // 写入attachedSlot池中用到哪一个了
         Slot.replace(bytes, 4, NumberPacker.packInt(current));
 

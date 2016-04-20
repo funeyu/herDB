@@ -106,6 +106,14 @@ public final class BufferedBlock {
     }
     
     
+    /**
+     * 剩余没处理的字节数组的长度
+     * @return
+     */
+    public int left(){
+        
+        return limit - position;
+    }
     // 将data的有效的字节数组全部倒出
     public byte[] pour(){
         
