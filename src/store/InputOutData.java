@@ -8,6 +8,10 @@ import java.io.IOException;
  * @author fuheu
  *
  */
+/**
+ * @author funer
+ *
+ */
 public abstract class InputOutData {
 
     /**
@@ -78,4 +82,11 @@ public abstract class InputOutData {
     public abstract InputOutData createNewFile() throws IOException;
     
     public abstract int readBlock(byte[] block) throws IOException;
+    
+    /**
+     * 修改文件的名称为 newName
+     * @param newName
+     * @return
+     */
+    public abstract boolean reName(String newName);
 }

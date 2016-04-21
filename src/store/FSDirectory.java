@@ -2,6 +2,7 @@ package store;
 
 import java.io.EOFException;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -201,6 +202,7 @@ public class FSDirectory {
             fileName = name;
             raf = new RandomAccessFile(f, "rw");
             maxOffSet = length = raf.length();
+            
         }
 
         public byte[] readFully() throws IOException {
@@ -274,6 +276,23 @@ public class FSDirectory {
         @Override public int readBlock(byte[] block) throws IOException {
             
             return this.raf.read(block);
+        }
+
+        @Override public boolean reName(String newName) {
+
+            File newFile = new File(directory, newName);
+            boolean isok = file.renameTo(newFile);
+            file = newFile;
+            
+            try {
+                raf = new RandomAccessFile(file, "rw");
+                length = raf.length();
+            } catch (IOException e) {
+                isok = false;
+                e.printStackTrace();
+            }
+            
+            return false;
         }
         
         

@@ -1,6 +1,9 @@
 package utils;
 
+import java.util.Arrays;
+
 public class Hash {
+    private final static int segmentSize = 7;
     private Hash() {
     }
 
@@ -16,5 +19,15 @@ public class Hash {
         hash ^= hash >> 17;
         hash += hash << 5;
         return Math.abs(hash);
+    }
+    
+    /**
+     * 根据key的byte数组　去获取相应的分段IndexSegments的数组下标
+     * @param key
+     * @return
+     */
+    public static int segmentNumberFor(byte[] key){
+        
+        return Arrays.hashCode(key) & segmentSize;
     }
 }

@@ -119,7 +119,12 @@ public class IndexSegment extends ReentrantLock {
 
                     // attachedSlot full开始扩容
                     if (++current > campacity)
-                        resize();
+                        try {
+                            resize();
+                        } catch (Exception e) {
+                            
+                            e.printStackTrace();
+                        }
 
                     // 设置上个slot 与本slot的关联
                     Slot.setAttachedSlot(oldindex, index, bytes);
@@ -165,6 +170,7 @@ public class IndexSegment extends ReentrantLock {
                     offset = Slot.getFileInfo(slotBytes);
                     try {
                         keylen = NumberPacker.unpackInt(fsData.position(offset + 4).readSequentially(4));
+                        
                         // note: key的hashcode相等的情况下也有可能key不一致
                         if (Arrays.equals(fsData.readSequentially(keylen), key)) {
 
@@ -234,7 +240,6 @@ public class IndexSegment extends ReentrantLock {
         // 标记splitedByte在下一个block的长度
         int distance = 0;
         int itemLength = 0;
-        byte[] fourBytes = new byte[4];
         // 标记每个key的长度
         int keyLength = 0;
         // 相应key的字节数组的数据
@@ -250,9 +255,8 @@ public class IndexSegment extends ReentrantLock {
                 if(splitedByte.length < 4) {
                     byte[] other = readingBlock.getBytes(4 - splitedByte.length);
                     
-                    System.arraycopy(splitedByte, 0, fourBytes, 0, splitedByte.length);
-                    System.arraycopy(other, 0, fourBytes, splitedByte.length, other.length);
-                    itemLength = NumberPacker.unpackInt(fourBytes);
+                    //将数据的长度byte数组合并，并解析成int
+                    itemLength = NumberPacker.unpackInt(Bytes.join(splitedByte, other));
                     
                     keyLength = readingBlock.getInt();
                     keyBytes = readingBlock.getBytes(keyLength);
@@ -328,6 +332,13 @@ public class IndexSegment extends ReentrantLock {
             
             temData.append(compressingBlock.pour());
         }
+        
+        // 删除旧的文件
+        fsData.deleteFile();
+        
+        temData.reName(fileName + DATASUFFIX);
+        
+        fsData = temData;
     }
 
     // 不加锁的put 只在扩容或者campact的时候调用,添加所以信息
@@ -391,6 +402,11 @@ public class IndexSegment extends ReentrantLock {
         
         return false;
     }
+    
+    public void testChange(String name){
+        
+        this.fsData.reName(name);
+    }
 
     /**
      * 将内存的index文件flush到磁盘里
@@ -402,7 +418,9 @@ public class IndexSegment extends ReentrantLock {
         Slot.replace(bytes, 4, NumberPacker.packInt(current));
 
         try {
-            fsIndex.deleteFile().createNewFile().flush(bytes);
+            fsIndex.deleteFile()
+                   .createNewFile()
+                   .flush(bytes);
         } catch (IOException e) {
 
             e.printStackTrace();
@@ -414,22 +432,23 @@ public class IndexSegment extends ReentrantLock {
     public static void main(String[] args) {
         byte[] key = null;
         try {
-            // FSDirectorytory fsd = FSDirectory.open("her");
-            FSDirectory fsd = FSDirectory.create("her", true);
+            FSDirectory fsd = FSDirectory.open("her");
+//            FSDirectory fsd = FSDirectory.create("her", true);
             IndexSegment segment = IndexSegment.createIndex(fsd, "segment1");
-            for (int i = 0; i < 10; i++) {
-                key = ("key" + i).getBytes();
-                byte[] value = ("old value" + i).getBytes();
-                int hashcode = Arrays.hashCode(key);
-                segment.put(key, hashcode, value);
-            }
-            
-            for (int i = 0; i < 10; i++) {
-                key = ("key" + i).getBytes();
-                byte[] value = ("new value" + i).getBytes();
-                int hashcode = Arrays.hashCode(key);
-                segment.put(key, hashcode, value);
-            }
+//            for (int i = 0; i < 10; i++) {
+//                key = ("key" + i).getBytes();
+//                byte[] value = ("old value" + i).getBytes();
+//                int hashcode = Arrays.hashCode(key);
+//                segment.put(key, hashcode, value);
+//            }
+//            
+//            for (int i = 0; i < 10; i++) {
+//                key = ("key" + i).getBytes();
+//                byte[] value = ("new value" + i).getBytes();
+//                int hashcode = Arrays.hashCode(key);
+//                segment.put(key, hashcode, value);
+//            }
+             segment.testChange("sucess");
             //
 
             // key = "key2000".getBytes();

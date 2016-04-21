@@ -6,6 +6,8 @@ import java.io.RandomAccessFile;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 
+import herdb.UnsupportedException;
+
 /**
  * 为了加快文件随机读的操作，将文件映射到内存中 注意： 不能在又读又写的情况下开启映射文件，为了性能映射内存只映射一次， 不能根据文件的追加而实时改变内存；
  * 
@@ -74,6 +76,11 @@ public class MMapInputStream extends InputOutData {
     @Override public int readBlock(byte[] block) {
         // TODO Auto-generated method stub
         return 0;
+    }
+
+    @Override public boolean reName(String newName) {
+        
+        throw new UnsupportedException("reName", this);
     }
 
 }
