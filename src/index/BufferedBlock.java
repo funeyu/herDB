@@ -4,6 +4,11 @@ import java.util.Arrays;
 
 import utils.NumberPacker;
 
+/**
+ * 文件缓冲块的大小，用来加快读写文件，类似于BufferByte
+ * @author funer
+ *
+ */
 public final class BufferedBlock {
     // 缓冲大小
     private final int capacity ;

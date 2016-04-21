@@ -45,7 +45,7 @@ public class IndexSegment extends ReentrantLock {
     private FSDirectory fsd;
     // 读取文件用到的文件块大小 默认先 64KB的大小
     // todo: 设置应该放在相应的配置文件里
-    private int BufferedSize = 1 << 5;
+    private int BufferedSize = 1 << 10;
 
     private IndexSegment(int campacity, int current, String fileName, byte[] bytes, InputOutData fs,
             InputOutData fsData, FSDirectory fsd) {
@@ -244,6 +244,8 @@ public class IndexSegment extends ReentrantLock {
         int keyLength = 0;
         // 相应key的字节数组的数据
         byte[] keyBytes = null;
+        // 相应value的字节数组的数据
+        byte[] valueBytes = null;
         // 遍历文件内容， 记录文件偏移
         long oldOffset = 0; 
 
@@ -262,7 +264,7 @@ public class IndexSegment extends ReentrantLock {
                     keyBytes = readingBlock.getBytes(keyLength);
                     
                     int valueLength = readingBlock.getInt();
-                    byte[] valueBytes = readingBlock.getBytes(valueLength);
+                    valueBytes = readingBlock.getBytes(valueLength);
                     
                    if(isItemValid(keyBytes, oldOffset)){
                        putNative(keyBytes, oldOffset, newBytes);
@@ -309,8 +311,13 @@ public class IndexSegment extends ReentrantLock {
                         //　需要添加到compressingBlock
                         if(isItemValid(keyBytes, offset)){
                             
+                            int valueL = readingBlock.getInt();
+                            valueBytes = readingBlock.getBytes(valueL);
+                            
                             long newOffset = compressingBlock.getOffset();
                             putNative(keyBytes, newOffset, newBytes);
+                            
+                            temData.append(Bytes.wrapData(keyBytes, valueBytes));
                         }
                         
                         continue;
@@ -339,6 +346,8 @@ public class IndexSegment extends ReentrantLock {
         temData.reName(fileName + DATASUFFIX);
         
         fsData = temData;
+        
+        bytes = newBytes;
     }
 
     // 不加锁的put 只在扩容或者campact的时候调用,添加所以信息
@@ -432,15 +441,15 @@ public class IndexSegment extends ReentrantLock {
     public static void main(String[] args) {
         byte[] key = null;
         try {
-            FSDirectory fsd = FSDirectory.open("her");
-//            FSDirectory fsd = FSDirectory.create("her", true);
+//            FSDirectory fsd = FSDirectory.open("her");
+            FSDirectory fsd = FSDirectory.create("her", true);
             IndexSegment segment = IndexSegment.createIndex(fsd, "segment1");
-//            for (int i = 0; i < 10; i++) {
-//                key = ("key" + i).getBytes();
-//                byte[] value = ("old value" + i).getBytes();
-//                int hashcode = Arrays.hashCode(key);
-//                segment.put(key, hashcode, value);
-//            }
+            for (int i = 0; i < 10000; i++) {
+                key = ("key" + i).getBytes();
+                byte[] value = ("old val'asjfojasfpdjasfjdaijfdiaue" + i).getBytes();
+                int hashcode = Arrays.hashCode(key);
+                segment.put(key, hashcode, value);
+            }
 //            
 //            for (int i = 0; i < 10; i++) {
 //                key = ("key" + i).getBytes();
