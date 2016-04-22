@@ -54,12 +54,13 @@ public final class BufferedBlock {
     //获取当前position位置的int数字
     public int getInt(){
         
-        advance(this.position + 4);
+        int oldPosi = position;
+        advance(4);
         return NumberPacker.unpackInt(new byte[]{
-            container[position],
-            container[position + 1],
-            container[position + 2],
-            container[position + 3]
+            container[oldPosi],
+            container[oldPosi + 1],
+            container[oldPosi + 2],
+            container[oldPosi + 3]
         });
     }
     
@@ -71,7 +72,7 @@ public final class BufferedBlock {
         }
         
         int position = getPosition();
-        advance(position + span);
+        advance(span);
         return Arrays.copyOfRange(container, position, position+ span);
     }
     
@@ -121,7 +122,7 @@ public final class BufferedBlock {
     }
     
     /**
-     * 返回剩余的字节数组
+     * 返回剩余的字节数组,并且将其重置
      * @return
      */
     public byte[] leftBytes(){
@@ -135,6 +136,8 @@ public final class BufferedBlock {
         position = limit;
         offset += limit - position;
         
+        // 重置
+        position = 0;
         return Arrays.copyOfRange(container, oldPosition, limit);
     }
     
@@ -153,5 +156,12 @@ public final class BufferedBlock {
     public void incOffset(int skips){
         
         offset += skips;
+    }
+    
+    // 将文件指针置于块头
+    public BufferedBlock placeHeader(){
+        
+        position = 0;
+        return this;
     }
 }

@@ -247,10 +247,15 @@ public class IndexSegment extends ReentrantLock {
         // 相应value的字节数组的数据
         byte[] valueBytes = null;
         // 遍历文件内容， 记录文件偏移
-        long oldOffset = 0; 
+        long oldOffset = 0l; 
+        
+        int test = 0;
 
-        while (readingBlock.setLimit(fsData.readBlock(readingBlock.getBlock())) != -1) {
-            
+        // fsData的文件的指针置于开头， 便于读
+        fsData.jumpHeader();
+        // 每读取一次的时候都要将块内存置头
+        while (readingBlock.placeHeader()
+                           .setLimit(fsData.readBlock(readingBlock.getBlock())) != -1) {
             if (splitedByte != null) {
                 
                 // 获取dataLength字节数组的另一半
@@ -299,6 +304,10 @@ public class IndexSegment extends ReentrantLock {
             
             while ( readingBlock.left() > 0) {
                 
+                test ++;
+                if(test == 82){
+                    System.out.println(test);
+                }
                 if( readingBlock.left() >= 4){
                     long offset = readingBlock.getOffset();
                     
@@ -310,12 +319,12 @@ public class IndexSegment extends ReentrantLock {
                         
                         //　需要添加到compressingBlock
                         if(isItemValid(keyBytes, offset)){
-                            
-                            int valueL = readingBlock.getInt();
-                            valueBytes = readingBlock.getBytes(valueL);
+                            // 此时的valueBytes的长度为: itemLength - 4[itemLength数字所占的字符] 
+                            //                         - keyLength -4[keyLength数字的长度]
+                            valueBytes = readingBlock.getBytes(itemLength - 4 - keyLength - 4);
                             
                             long newOffset = compressingBlock.getOffset();
-                            putNative(keyBytes, newOffset, newBytes);
+                            putNative(keyBytes, newOffset, newBytes);//to check
                             
                             temData.append(Bytes.wrapData(keyBytes, valueBytes));
                         }
@@ -324,7 +333,9 @@ public class IndexSegment extends ReentrantLock {
                     } else {
                         // 记录此刻的文件偏移
                         oldOffset = readingBlock.getOffset();
-                        splitedByte = readingBlock.leftBytes();
+                        // 将itemLength与剩余的byte打包成splitedByte
+                        splitedByte = Bytes.join(NumberPacker.packInt(itemLength), 
+                                                readingBlock.leftBytes());
                         break;
                     }
                 } else {
@@ -363,6 +374,7 @@ public class IndexSegment extends ReentrantLock {
         boolean isNew = true;
         // 根据index获取该slot的byte[13]
         slotBytes = Arrays.copyOfRange(newBytes, index * Slot.slotSize + 8, (index + 1) * Slot.slotSize + 8);
+        System.out.println("offset；" + offset);
 
         while ((hc = Slot.getHashCode(slotBytes)) != 0) {
             
@@ -446,7 +458,7 @@ public class IndexSegment extends ReentrantLock {
             IndexSegment segment = IndexSegment.createIndex(fsd, "segment1");
             for (int i = 0; i < 10000; i++) {
                 key = ("key" + i).getBytes();
-                byte[] value = ("old val'asjfojasfpdjasfjdaijfdiaue" + i).getBytes();
+                byte[] value = ("value" + i).getBytes();
                 int hashcode = Arrays.hashCode(key);
                 segment.put(key, hashcode, value);
             }

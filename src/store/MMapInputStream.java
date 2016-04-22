@@ -83,4 +83,9 @@ public class MMapInputStream extends InputOutData {
         throw new UnsupportedException("reName", this);
     }
 
+    @Override public void jumpHeader() throws IOException {
+        // TODO Auto-generated method stub
+        
+    }
+
 }

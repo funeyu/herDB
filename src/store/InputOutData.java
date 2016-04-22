@@ -81,6 +81,12 @@ public abstract class InputOutData {
      */
     public abstract InputOutData createNewFile() throws IOException;
     
+    /**
+     * 将该文件读写指针置于开头ßßßßß
+     * @return
+     */
+    public abstract void jumpHeader()throws IOException;
+    
     public abstract int readBlock(byte[] block) throws IOException;
     
     /**

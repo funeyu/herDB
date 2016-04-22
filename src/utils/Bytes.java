@@ -12,6 +12,13 @@ public final class Bytes {
      */
     public final static byte[] join(byte[]the , byte[] other){
         
+        if(the == null){
+            return other;
+        }
+        if(other == null){
+            return the;
+        }
+        
         byte[] result = new byte[ the.length + other.length ];
         
         for (int i = 0, length = the.length; i < length; i++){
@@ -36,7 +43,7 @@ public final class Bytes {
     public final static byte[] wrapData(byte[] key, byte[] value) {
 
         // 先写入该wrapedData的长度
-        byte[] datalength = NumberPacker.packInt(key.length + value.length + 12);
+        byte[] datalength = NumberPacker.packInt(key.length + value.length + 8);
         // 写入key的长度
         byte[] keylength = NumberPacker.packInt(key.length);
         

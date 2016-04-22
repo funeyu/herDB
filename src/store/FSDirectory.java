@@ -272,7 +272,8 @@ public class FSDirectory {
             length = raf.length();
             return this;
         }
-
+        
+        
         @Override public int readBlock(byte[] block) throws IOException {
             
             return this.raf.read(block);
@@ -293,6 +294,11 @@ public class FSDirectory {
             }
             
             return false;
+        }
+
+        @Override public void jumpHeader() throws IOException {
+            
+            this.raf.seek(0);
         }
         
         
