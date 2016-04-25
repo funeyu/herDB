@@ -23,8 +23,9 @@ public final class NumberPacker {
      *            需要pack的long
      * @return
      */
-    public static int packLong(byte[] ba, long value) {
+    public static byte[] packLong(long value) {
 
+        byte[] ba = new byte[5];
         if (value < 0) {
             throw new IllegalArgumentException("negative value: v=" + value);
         }
@@ -36,7 +37,7 @@ public final class NumberPacker {
             i++;
         }
         ba[i - 1] = (byte) value;
-        return i;
+        return ba;
     }
 
     /**

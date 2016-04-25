@@ -1,165 +1,72 @@
 package index;
 
-import java.util.Arrays;
-
-import utils.NumberPacker;
-
 /**
  * 文件缓冲块的大小，用来加快读写文件，类似于BufferByte
  * @author funer
  *
  */
-public final class BufferedBlock {
+public class BufferedBlock {
     // 缓冲大小
-    private final int capacity ;
+    protected final int capacity ;
     // 缓冲池操作指针指示的位置
-    private int position;
+    protected int position;
     // 缓冲的具体二进制内容
-    private final byte[] container;
+    protected final byte[] container;
     // 缓冲区域有效区的截止边
-    private int limit;
+    protected int limit;
     
     // 用来记录文件块在文件中的具体的偏移
-    private long offset;
+    protected long offset;
     
-    private BufferedBlock(int capacity, int position, byte[] container){
+    protected BufferedBlock(int capacity, int position){
   
         this.capacity = capacity;
         this.position = position;
-        this.container = container;
+        this.container =  new byte[capacity];
     }
     
-    public static BufferedBlock allocate(int capacity){
-        
-        byte[] container = new byte[capacity];
-        // 默认初始的情况 position:0
-        return new BufferedBlock(capacity, 0, container);
-    }
-    
-    public byte[] getBlock(){
+    protected byte[] getBlock(){
         
         return container;
     }
     
-    public void advance(int skip){
+    // 只在此更改offset,将position与offset加 skip
+    protected void advance(int skip){
         
         position += skip;
         offset += skip;
     }
-    public int getPosition(){
+    
+    protected int getPosition(){
         
         return this.position;
     }
     
-    //获取当前position位置的int数字
-    public int getInt(){
-        
-        int oldPosi = position;
-        advance(4);
-        return NumberPacker.unpackInt(new byte[]{
-            container[oldPosi],
-            container[oldPosi + 1],
-            container[oldPosi + 2],
-            container[oldPosi + 3]
-        });
-    }
-    
-    // 获取该缓冲长度为span的字节数组
-    public byte[] getBytes(int span){
-        
-        if(span == 0){
-            return null;
-        }
-        
-        int position = getPosition();
-        advance(span);
-        return Arrays.copyOfRange(container, position, position+ span);
-    }
-    
-    public int setLimit(int limit){
+    protected int setLimit(int limit){
         
         this.limit = limit;
-        return limit;
+        return this.limit;
     }
     
     // 获取该读取文件块的有效大小
-    public int getLimit(){
+    protected int getLimit(){
         
         return limit;
     }
     
-    public BufferedBlock skip(int span){
-        
-        this.position += span;
-        return this;
-    }
-    
-    
-    // 将data的字节数组包装到该BufferedBlock中
-    public BufferedBlock wrap(byte[] data){
-        
-        if(data == null){
-            return this;
-        }
-        
-        for (int i = 0, length = data.length; i < length; i++) {
-            container[i+limit] = data[i];
-        }
-        limit += data.length;
-        offset += data.length;
-        
-        return this;
-    }
-    
-    
-    /**
-     * 剩余没处理的字节数组的长度
-     * @return
-     */
-    public int left(){
+    // block剩余的空间
+    protected int left(){
         
         return limit - position;
     }
     
-    /**
-     * 返回剩余的字节数组,并且将其重置
-     * @return
-     */
-    public byte[] leftBytes(){
-        
-        //　说明没有剩余，　item没被分在两个block里
-        if(position == limit) {
-            return null;
-        }
-        
-        int oldPosition = position;
-        position = limit;
-        offset += limit - position;
-        
-        // 重置
-        position = 0;
-        return Arrays.copyOfRange(container, oldPosition, limit);
-    }
-    
-    // 将data的有效的字节数组全部倒出
-    public byte[] pour(){
-        
-        limit = 0;
-        return Arrays.copyOfRange(container, 0, limit);
-    }
-    
-    public long getOffset(){
+    protected long getOffset(){
         
         return offset;
     }
-  
-    public void incOffset(int skips){
-        
-        offset += skips;
-    }
     
     // 将文件指针置于块头
-    public BufferedBlock placeHeader(){
+    protected BufferedBlock placeHeader(){
         
         position = 0;
         return this;

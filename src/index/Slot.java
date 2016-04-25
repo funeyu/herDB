@@ -5,9 +5,13 @@ import java.util.Arrays;
 import utils.NumberPacker;
 
 /**
- * 为哈希的槽节点相关的方法集合，每个slot实际上三步分组成：<br/>
- * <--hashcode-->|<--fileposition-->|<--attachedslot--> <br/>
- * ----4字节-----------5字节----------------4字节---- 此时的Slot相当于static class
+ * 为哈希的槽节点相关的方法集合，每个slot实际上三步分组成
+ * <pre>
+ * <--hashcode-->|<--fileposition-->|<--attachedslot-->
+ * ----4字节-----------5字节----------------4字节--------
+ * </pre>
+
+ *  此时的Slot相当于static unit class
  * 
  * @author funer
  *
@@ -35,8 +39,7 @@ public final class Slot {
         for (int i = 0; i < 4; i++)
             bytes[i] = hc[i];
 
-        byte[] fp = new byte[5];
-        NumberPacker.packLong(fp, fileposition);
+        byte[] fp = NumberPacker.packLong(fileposition);
         for (int i = 0; i < 5; i++)
             bytes[i + 4] = fp[i];
 
@@ -63,6 +66,7 @@ public final class Slot {
         }
     }
 
+    
     /**
      * 获取该slot下 相对应key的hashcode
      * 
@@ -94,22 +98,5 @@ public final class Slot {
     public static int getAttachedSlot(byte[] bytes) {
 
         return NumberPacker.unpackInt(Arrays.copyOfRange(bytes, 9, slotSize));
-    }
-
-    /**
-     * 将bytes数组从 <b>start</b>以后的数组用<b>data</b>替换 替换的长度就为<code>data.length</code>
-     * 
-     * @param bytes
-     *            要被替换的byte[]
-     * @param start
-     *            被替换的byte[]开始的index
-     * @param data
-     *            替换使用的数组
-     */
-    public static void replace(byte[] bytes, int start, byte[] data) {
-
-        for (int i = 0, length = data.length; i < length; i++) {
-            bytes[start++] = data[i];
-        }
     }
 }
