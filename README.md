@@ -40,11 +40,13 @@
 打开一个已有的herdb数据库：
 ``` java
 HerDB herdb = HerDB.open("herdb");
+
 herdb.get();
 herdb.put();
 herdb.put();
 blablabla......
- herdb.commit();
+
+herdb.commit();
 ```
 
 ## 实现细节：
