@@ -51,3 +51,7 @@ herdb.commit();
 
 ## 实现细节：
 [herDB的实现概要](http://funeyu.github.io/2016/04/18/herDB%E7%9A%84%E8%AE%BE%E8%AE%A1%E6%A6%82%E8%A6%81/)
+
+## TO DO:
++ 添加lru热缓存实现；
++ 提供数据压缩接口
