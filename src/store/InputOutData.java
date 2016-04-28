@@ -8,6 +8,10 @@ import java.io.IOException;
  * @author fuheu
  *
  */
+/**
+ * @author funeyu
+ *
+ */
 public abstract class InputOutData {
 
     /**
@@ -18,7 +22,7 @@ public abstract class InputOutData {
     public abstract byte[] readFully() throws IOException;
 
     /**
-     * 从文件随机读取length长度的字节数组
+     * 从文件offset开始处，随机读取length长度的字节数组
      * 
      * @param offset
      *            开始读取的位置
@@ -42,7 +46,7 @@ public abstract class InputOutData {
      * @param data
      * @return 追加完数据后
      */
-    public abstract long append(byte[] data) throws IOException;
+    public abstract InputOutData append(byte[] data) throws IOException;
 
     /**
      * 顺序读取文件
@@ -76,4 +80,19 @@ public abstract class InputOutData {
      * @return
      */
     public abstract InputOutData createNewFile() throws IOException;
+    
+    /**
+     * 将该文件读写指针置于开头
+     * @return
+     */
+    public abstract void jumpHeader()throws IOException;
+    
+    public abstract int readBlock(byte[] block) throws IOException;
+    
+    /**
+     * 修改文件的名称为 newName
+     * @param newName
+     * @return
+     */
+    public abstract boolean reName(String newName);
 }

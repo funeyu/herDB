@@ -3,21 +3,16 @@ package store;
 import java.io.EOFException;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.io.RandomAccessFile;
 
 /**
- * @author funer
+ * @author funeyu
  *
  */
 public class FSDirectory {
     private File directory;
     private Lock lock;
-    private InputStream input;
-    private OutputStream output;
     private final static String LOCKFILENAME = "herDB.lock";
-    private final static String DATAFILENAME = "herDB.dat";
 
     /**
      * @param directoryPath：为目录的文件夹文件
@@ -60,16 +55,6 @@ public class FSDirectory {
         lock.release();
     }
 
-    private String getPath() {
-
-        return directory.getPath();
-    }
-
-    private InputStream getInput() {
-
-        return null;
-    }
-
     public boolean isExsit(String pathName) {
 
         File f = new File(directory.getPath(), pathName);
@@ -94,21 +79,24 @@ public class FSDirectory {
         return null;
     }
 
+    /**
+     * 将磁盘文件全部读到内存， 方法只用在索引文件
+     * @param name 文件名
+     * @return 磁盘文件的字节数组
+     */
     public byte[] readIndexFully(String name) {
         try {
             RandomAccessFile f = new RandomAccessFile(new File(directory, name), "r");
             int length = (int) f.length();
             byte[] data = new byte[length];
             f.readFully(data);
+            f.close();
+            
             return data;
         } catch (IOException e) {
-            // TODO Auto-generated catch block
+            
             e.printStackTrace();
         }
-        return null;
-    }
-
-    private byte[] seek(int start, int offset) {
         return null;
     }
 
@@ -200,7 +188,8 @@ public class FSDirectory {
             directory = dir;
             fileName = name;
             raf = new RandomAccessFile(f, "rw");
-            length = raf.length();
+            maxOffSet = length = raf.length();
+            
         }
 
         public byte[] readFully() throws IOException {
@@ -215,7 +204,6 @@ public class FSDirectory {
             try {
                 raf.write(datas, 0, datas.length);
             } catch (IOException e) {
-                // TODO Auto-generated catch block
                 e.printStackTrace();
             }
         }
@@ -231,13 +219,13 @@ public class FSDirectory {
             return res;
         }
 
-        @Override public long append(byte[] data) throws IOException {
+        @Override public FSDataStream append(byte[] data) throws IOException {
 
             long fileLength = raf.length();
             raf.seek(fileLength);
             raf.write(data);
             maxOffSet += data.length;
-            return fileLength + data.length;
+            return this;
         }
 
         @Override public byte[] readSequentially(int size) throws IOException {
@@ -269,6 +257,34 @@ public class FSDirectory {
             raf = new RandomAccessFile(f, "rw");
             length = raf.length();
             return this;
+        }
+        
+        
+        @Override public int readBlock(byte[] block) throws IOException {
+            
+            return this.raf.read(block);
+        }
+
+        @Override public boolean reName(String newName) {
+
+            File newFile = new File(directory, newName);
+            boolean isok = file.renameTo(newFile);
+            file = newFile;
+            
+            try {
+                raf = new RandomAccessFile(file, "rw");
+                length = raf.length();
+            } catch (IOException e) {
+                isok = false;
+                e.printStackTrace();
+            }
+            
+            return isok;
+        }
+
+        @Override public void jumpHeader() throws IOException {
+            
+            this.raf.seek(0);
         }
         
         
