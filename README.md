@@ -18,7 +18,7 @@
   conf.set(Configuration.BUFFERED_BLOCK_SIZE, "8192");
   
   // 设置分段segmentIndex数组的大小
-  conf.set(Configuration.SEGMENTS_SIZE, "16");
+  conf.set(Configuration.SEGMENTS_SIZE, "8");
   
   // 设置key/value数据的最大长度
   conf.set(Configuration.ITEM_DATA_MAX_SIZE, "1024");
