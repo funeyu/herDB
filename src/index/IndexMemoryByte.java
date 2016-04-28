@@ -25,9 +25,44 @@ public final class IndexMemoryByte {
         this.bytes = new byte[(capacity << 1) * Slot.slotSize  + 8];
     }
     
+    private IndexMemoryByte(int capacity, int current, byte[] bytes){
+        
+        this.capacity = capacity;
+        this.current = current;
+        this.bytes= bytes;
+    }
+    /**
+     * 初始一个空的IndexMemory的容器;
+     * @param capacity 
+     * @param current
+     * @return
+     */
     public static IndexMemoryByte init(int capacity, int current){
         
         return new IndexMemoryByte(capacity, current);
+    }
+    
+    /**通过bytes 数组生成一个IndexMemoryByte
+     * @param bytes
+     * @return
+     */
+    public static IndexMemoryByte open(byte[] bytes){
+        
+        int capacity = NumberPacker.unpackInt(new byte[]{
+                bytes[0],
+                bytes[1],
+                bytes[2],
+                bytes[3]
+        });
+        
+        int current = NumberPacker.unpackInt(new byte[]{
+                bytes[5],
+                bytes[6],
+                bytes[7],
+                bytes[8]
+        });
+        
+        return new IndexMemoryByte(capacity, current, bytes);
     }
     
     /**
@@ -118,7 +153,7 @@ public final class IndexMemoryByte {
     // 将current自增
     public void incCurrent() throws IndexOutofRangeException{
         
-        if(++current >= capacity){
+        if(++current > capacity){
             throw new IndexOutofRangeException();
         }
         
@@ -148,8 +183,9 @@ public final class IndexMemoryByte {
      */
     public int nextCurrentSafely(){
         
+        int oldIndex = current;
         current ++;
-        return current + capacity;
+        return oldIndex + capacity;
     }
     
     // 返回该内存索引的所有数据
@@ -174,7 +210,7 @@ public final class IndexMemoryByte {
         
         byte[] currentBytes = NumberPacker.packInt(current);
         for (int i = 0; i < 4; i++){
-            bytes[i]  = currentBytes[i];
+            bytes[i + 4]  = currentBytes[i];
         }
         
         return this;

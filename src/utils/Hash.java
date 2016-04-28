@@ -21,13 +21,16 @@ public class Hash {
         return Math.abs(hash);
     }
     
-    /**
-     * 根据key的byte数组　去获取相应的分段IndexSegments的数组下标
+    /** 
+     * 计算key的hashcode，为了内存索引数据中的hashcode字段 == 0判断该slot是否为空；
+     * 需要将key的hashcode全部转成不等于0的数据；
      * @param key
-     * @return
+     * @return 不为0的数据
      */
-    public static int segmentNumberFor(byte[] key){
+    public static int KeyHash(byte[] key){
         
-        return Arrays.hashCode(key) & segmentSize;
+        int hashcode = Arrays.hashCode(key);
+        return hashcode == 0 ? 1 : hashcode;
+                
     }
 }

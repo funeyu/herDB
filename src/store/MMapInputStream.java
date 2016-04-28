@@ -3,15 +3,17 @@ package store;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 
 import herdb.UnsupportedException;
 
 /**
- * 为了加快文件随机读的操作，将文件映射到内存中 注意： 不能在又读又写的情况下开启映射文件，为了性能映射内存只映射一次， 不能根据文件的追加而实时改变内存；
+ * 为了加快文件随机读的操作，将文件映射到内存中 
+ * 注意： 不能在又读又写的情况下开启映射文件，为了性能映射内存只映射一次， 不能根据文件的追加而实时改变内存；
  * 
- * @author funer
+ * @author funeyu
  *
  */
 public class MMapInputStream extends InputOutData {
@@ -28,23 +30,26 @@ public class MMapInputStream extends InputOutData {
         }
     }
 
-    public byte[] readFully() throws IOException {
+    // 不需要将磁盘文件全部读到内存中
+    @Override public byte[] readFully() throws IOException {
 
+        throw new UnsupportedException("readFully", this);
+    }
+
+    @Override public byte[] seek(long offset, int size) throws IOException {
+        
+        randomFile.position((int) offset);
         return null;
     }
 
-    public byte[] seek(long offset, int size) throws IOException {
+    @Override public InputOutData append(byte[] data) throws IOException {
 
-        return null;
+        throw new UnsupportedException("append", this);
     }
 
-    public InputOutData append(byte[] data) throws IOException {
+    @Override public void flush(byte[] data) {
 
-        return this;
-    }
-
-    public void flush(byte[] data) {
-
+        throw new UnsupportedException("flush", this);
     }
 
     @Override public byte[] readSequentially(int size) throws IOException {
@@ -54,28 +59,28 @@ public class MMapInputStream extends InputOutData {
 
     @Override public long maxOffSet() {
 
-        return 0;
+        return randomFile.capacity();
     }
 
     @Override public InputOutData position(long offset) throws IOException {
-
-        return null;
+        
+        randomFile.position((int)offset);
+        return this;
     }
 
     @Override public InputOutData deleteFile() {
         
-        return null;
+        throw new UnsupportedException("deleteFile", this);
     }
 
-    @Override
-    public InputOutData createNewFile() throws IOException {
-        // TODO Auto-generated method stub
-        return null;
+    @Override public InputOutData createNewFile() throws IOException {
+        
+        throw new UnsupportedException("createNewFile", this);
     }
 
     @Override public int readBlock(byte[] block) {
-        // TODO Auto-generated method stub
-        return 0;
+        
+        return randomFile.get(block).capacity();
     }
 
     @Override public boolean reName(String newName) {
@@ -84,8 +89,8 @@ public class MMapInputStream extends InputOutData {
     }
 
     @Override public void jumpHeader() throws IOException {
-        // TODO Auto-generated method stub
         
+        randomFile.position(0);
     }
 
 }

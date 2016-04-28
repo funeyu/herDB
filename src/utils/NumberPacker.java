@@ -6,7 +6,7 @@ import java.io.IOException;
 /**
  * number与byte array的互相转换的工具类 note:这里的转换int 与long型number都是non-negative的
  * 
- * @author fuheu
+ * @author funeyu
  *
  */
 public final class NumberPacker {

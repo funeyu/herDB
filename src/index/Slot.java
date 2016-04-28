@@ -13,7 +13,7 @@ import utils.NumberPacker;
 
  *  此时的Slot相当于static unit class
  * 
- * @author funer
+ * @author funeyu
  *
  */
 public final class Slot {

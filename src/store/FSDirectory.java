@@ -2,23 +2,17 @@ package store;
 
 import java.io.EOFException;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.io.RandomAccessFile;
 
 /**
- * @author funer
+ * @author funeyu
  *
  */
 public class FSDirectory {
     private File directory;
     private Lock lock;
-    private InputStream input;
-    private OutputStream output;
     private final static String LOCKFILENAME = "herDB.lock";
-    private final static String DATAFILENAME = "herDB.dat";
 
     /**
      * @param directoryPath：为目录的文件夹文件
@@ -61,16 +55,6 @@ public class FSDirectory {
         lock.release();
     }
 
-    private String getPath() {
-
-        return directory.getPath();
-    }
-
-    private InputStream getInput() {
-
-        return null;
-    }
-
     public boolean isExsit(String pathName) {
 
         File f = new File(directory.getPath(), pathName);
@@ -95,21 +79,24 @@ public class FSDirectory {
         return null;
     }
 
+    /**
+     * 将磁盘文件全部读到内存， 方法只用在索引文件
+     * @param name 文件名
+     * @return 磁盘文件的字节数组
+     */
     public byte[] readIndexFully(String name) {
         try {
             RandomAccessFile f = new RandomAccessFile(new File(directory, name), "r");
             int length = (int) f.length();
             byte[] data = new byte[length];
             f.readFully(data);
+            f.close();
+            
             return data;
         } catch (IOException e) {
-            // TODO Auto-generated catch block
+            
             e.printStackTrace();
         }
-        return null;
-    }
-
-    private byte[] seek(int start, int offset) {
         return null;
     }
 
@@ -217,7 +204,6 @@ public class FSDirectory {
             try {
                 raf.write(datas, 0, datas.length);
             } catch (IOException e) {
-                // TODO Auto-generated catch block
                 e.printStackTrace();
             }
         }
@@ -293,7 +279,7 @@ public class FSDirectory {
                 e.printStackTrace();
             }
             
-            return false;
+            return isok;
         }
 
         @Override public void jumpHeader() throws IOException {

@@ -9,7 +9,7 @@ import java.io.IOException;
  *
  */
 /**
- * @author funer
+ * @author funeyu
  *
  */
 public abstract class InputOutData {
@@ -22,7 +22,7 @@ public abstract class InputOutData {
     public abstract byte[] readFully() throws IOException;
 
     /**
-     * 从文件随机读取length长度的字节数组
+     * 从文件offset开始处，随机读取length长度的字节数组
      * 
      * @param offset
      *            开始读取的位置
@@ -82,7 +82,7 @@ public abstract class InputOutData {
     public abstract InputOutData createNewFile() throws IOException;
     
     /**
-     * 将该文件读写指针置于开头ßßßßß
+     * 将该文件读写指针置于开头
      * @return
      */
     public abstract void jumpHeader()throws IOException;
