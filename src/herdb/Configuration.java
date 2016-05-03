@@ -19,21 +19,36 @@ public class Configuration {
     public final static String SLOTS_CAPACITY = "slots.capacity";
     // 配置多少个分段
     public final static String SEGMENTS_SIZE = "segments.size";
-    
-    private final String dirPath;
+    // 配置lru缓存的内存大小
+    public final static String STORAGE_CACHE_SIZE = "storage.cache.size";
     // 存储配置信息
     public final static HashMap<String, String> conf = new HashMap<String, String>();
+    
+    // 配置临时的'开关项'变量
+    public final static String IS_ONLY_READ = "isOnlyRead";
+    public final static String IS_CACHE_ON ="isCacheOn";
+    public final static HashMap<String, Boolean> tem = new HashMap<String, Boolean>();
+    
+    private final String dirPath;
     
     
     private Configuration(String dirPath){
         
         this.dirPath = dirPath;
         
-        // 先设置默认的配置
+        // 先设置默认的配置，这些配置项要写入文件磁盘中
         set(Configuration.BUFFERED_BLOCK_SIZE, "32768");
         set(Configuration.ITEM_DATA_MAX_SIZE, "1024");
         set(Configuration.SLOTS_CAPACITY, "32768");
         set(Configuration.SEGMENTS_SIZE, "8");
+        // 1kb的lru缓存大小
+        set(Configuration.STORAGE_CACHE_SIZE, "1048576");
+        
+        // 设置默认的临时开关项
+        // 默认不打开热缓存开关
+        tem.put(Configuration.IS_CACHE_ON, false);
+        // 默认文件数据不是只读模式
+        tem.put(Configuration.IS_ONLY_READ, false);
     }
     
     /**
@@ -46,6 +61,28 @@ public class Configuration {
         
         conf.put(key, value);
         return this;
+    }
+    
+    // 缓存打开返回 true 否则 false
+    public boolean isCacheOn(){
+        
+        return tem.get(Configuration.IS_CACHE_ON);
+    }
+    
+    // 是否是只读模式
+    public boolean isOnlyRead(){
+        
+        return tem.get(Configuration.IS_ONLY_READ);
+    }
+    
+    /**
+     * 开关项的配置设定
+     * @param key 
+     * @param onOrOff true:打开 false:关闭 
+     */
+    public void setOnOff(String key, boolean onOrOff){
+        
+        tem.put(key, onOrOff);
     }
     
     /**

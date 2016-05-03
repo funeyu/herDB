@@ -20,11 +20,12 @@ public class MMapInputStream extends InputOutData {
 
     private MappedByteBuffer randomFile;
 
-    public MMapInputStream(String pathName) {
-        File file = new File(pathName);
+    @SuppressWarnings("resource")
+    public MMapInputStream(File dir, String pathName) {
+        File file = new File(dir, pathName);
         try {
             randomFile = new RandomAccessFile(file, "r").getChannel().map(FileChannel.MapMode.READ_ONLY, 0,
-                    file.length());
+                    file.length()).load();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -53,8 +54,10 @@ public class MMapInputStream extends InputOutData {
     }
 
     @Override public byte[] readSequentially(int size) throws IOException {
-
-        return null;
+        
+        byte [] result = new byte[size];
+        randomFile.get(result);
+        return result;
     }
 
     @Override public long maxOffSet() {

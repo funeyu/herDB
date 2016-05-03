@@ -76,11 +76,11 @@ public class IndexSegment extends ReentrantLock {
         // index文件不存在则新建index文件
         if (!fsd.isExsit(fileName + INDEXSUFFIX) && (first = true))
             fsd.touchFile(fileName + INDEXSUFFIX);
-        InputOutData fsIndex = fsd.createDataStream(fileName + INDEXSUFFIX);
+        InputOutData fsIndex = fsd.createDataStream(fileName + INDEXSUFFIX, false);
 
         if (!fsd.isExsit(fileName + DATASUFFIX))
             fsd.touchFile(fileName + DATASUFFIX);
-        InputOutData fsData = fsd.createDataStream(fileName + DATASUFFIX);
+        InputOutData fsData = fsd.createDataStream(fileName + DATASUFFIX, conf.isOnlyRead());
 
         if (first) {
             return new IndexSegment(conf.get(Configuration.SLOTS_CAPACITY), 0, fileName, fsIndex, 
@@ -192,13 +192,15 @@ public class IndexSegment extends ReentrantLock {
                         // key/value磁盘数据格式： 
                         // datalength(4 bytes) + keylength(4 bytes) + key(raw data) + value(raw data) 
                         // datalength的大小：4 + key的字节长度 + value的字节长度
+                        long start = System.currentTimeMillis();
                         int datalen = NumberPacker.unpackInt(
                                 fsData.position(filepo)
                                 .readSequentially(4));
                         int keylen = NumberPacker.unpackInt(
                                 fsData.readSequentially(4));
                         int valuelen = datalen - keylen - 4;
-                        
+                        long end = System.currentTimeMillis();
+                        long during = end - start;
                         // note: key的hashcode相等的情况下也有可能key不一致
                         if (Arrays.equals(fsData.readSequentially(keylen), key)) {
                             byte[] value = fsData.readSequentially(valuelen);
@@ -276,7 +278,7 @@ public class IndexSegment extends ReentrantLock {
         writingBlock.setLimit(BufferedSize);
         
         // 文件用来写去除无用数据
-        InputOutData temData = fsd.createDataStream(fileName + TEMFILESUFFIX);
+        InputOutData temData = fsd.createDataStream(fileName + TEMFILESUFFIX, false);
         IndexMemoryByte tempMemoryByte = IndexMemoryByte.init(newCap, 0);
         
         // 每次resize之前，先将文件的指针置于开头的位置，便于从头开始顺序读
