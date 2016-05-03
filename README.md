@@ -51,7 +51,7 @@ herdb.commit();
 加快随机读的方法:
 ``` java
 // 只读模式下将herdb文件映射到内存加快随机读
-HerDB herdb = HerDB.openOnlyRead("her");
+HerDB herdb = HerDB.openOnlyRead("herdb");
 herDB.get("china".getBytes())
 ```
 
@@ -65,7 +65,7 @@ herDB.get("china".getBytes())
 Configuration conf = Configuration.create("herdb");
 conf.set(Configuration.BUFFERED_BLOCK_SIZE, "4096");
 try {
-    HerDB herdb = HerDB.create(conf, "her");
+    HerDB herdb = HerDB.create(conf, "herdb");
     long start = System.currentTimeMillis();
     for(int i = 0; i < 10000000; i ++){
     herdb.put(("key123"+ i).getBytes(), ("value案件司法就是发动机案说法jijaijdiajdifjaojfdiaodfijaosjdfoiajdfoiajfdi"
