@@ -164,12 +164,15 @@ public class FSDirectory {
      * 
      * @param name
      *            该目录下的文件名
+     * @onlyRead 只读：true， 读写：false 
+     *           在打开herdb数据库，只读情况下可以将数据文件映射到堆内存，加快读操作
      * @return
      * @throws Exception
      */
-    public FSDataStream createDataStream(String name) throws Exception {
+    public InputOutData createDataStream(String name, boolean onlyRead) throws Exception {
 
-        return new FSDataStream(this.directory, name);
+        return onlyRead ? new MMapInputStream(this.directory, name)
+                        : new FSDataStream(this.directory, name);
     }
 
     class FSDataStream extends InputOutData {

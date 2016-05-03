@@ -51,8 +51,8 @@ public abstract class InputOutData {
     /**
      * 顺序读取文件
      * 
-     * @param size
-     * @return
+     * @param size 读取文件的长度
+     * @return 
      */
     public abstract byte[] readSequentially(int size) throws IOException;
 
