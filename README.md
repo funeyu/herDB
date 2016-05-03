@@ -93,6 +93,7 @@ try {
     e.printStackTrace();
   }
 ```
+1000W次的随机读在10s以内；
 
 
 ## 实现细节：
