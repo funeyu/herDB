@@ -49,6 +49,9 @@ public final class HerDB {
         
         // 检查配置是否有问题
         conf.checkAndStore();
+        // 默认情况下打开lru缓存
+        conf.setOnOff(Configuration.IS_CACHE_ON, true);
+        
         HerDB herDB = new HerDB(conf, fsd, true);
         return herDB;
     }
@@ -62,6 +65,8 @@ public final class HerDB {
     public static HerDB open(String dirPath) throws Exception{
         
         Configuration conf = Configuration.open(dirPath);
+        //默认情况下打开lru缓存
+        conf.setOnOff(Configuration.IS_CACHE_ON, true);
         FSDirectory fsd = FSDirectory.open(dirPath);
         
         return new HerDB(conf, fsd, false) ;
@@ -77,6 +82,7 @@ public final class HerDB {
     public static HerDB openOnlyRead(String dirPath) throws Exception{
         
         Configuration conf = Configuration.open(dirPath);
+        // 默认情况下打开lru缓存
         conf.setOnOff(Configuration.IS_ONLY_READ, true);
         FSDirectory fsd = FSDirectory.open(dirPath);
 
@@ -84,12 +90,23 @@ public final class HerDB {
     }
     
     /**
-     * 打开热缓存开关
+     * 打开热缓存
      * @return
      */
     public HerDB cacheOn(){
         
         conf.setOnOff(Configuration.IS_CACHE_ON, true);
+        return this;
+    }
+    
+    
+    /**
+     * 关闭热缓存
+     * @return
+     */
+    public HerDB cacheOff() {
+        
+        conf.setOnOff(Configuration.IS_CACHE_ON, false);
         return this;
     }
     
@@ -147,6 +164,8 @@ public final class HerDB {
         return Arrays.hashCode(key) & conf.get(Configuration.SEGMENTS_SIZE) - 1;
     }
     
+    
+    // code example
     public static void main(String[] args){
         
         Configuration conf = Configuration.create("her");
