@@ -82,7 +82,7 @@ try {
 随机读写的性能，针对上面的添加数据，在内存映射下只读模式测试：
 ``` java
 try {
-  HerDB herdb = HerDB.openOnlyRead("her");
+  HerDB herdb = HerDB.openOnlyRead("herdb");
   long start = System.currentTimeMillis();
   for(int i = 0; i < 10000000; i ++){
     herdb.get(("key123" + (int)(Math.random()* 10000000)).getBytes(), null);
