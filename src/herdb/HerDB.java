@@ -5,6 +5,7 @@ import java.util.Arrays;
 
 import cache.StorageCache;
 import index.IndexSegment;
+import serializer.SerializerImp;
 import store.FSDirectory;
 
 public final class HerDB {
@@ -13,6 +14,8 @@ public final class HerDB {
     private IndexSegment[] segments;
     private FSDirectory fsd;
     private StorageCache cache;
+
+    private SerializerImp serilization = SerializerImp.build();
     
     /** 
      * HerDB的constructor,初始化IndexSegment数组
@@ -121,9 +124,24 @@ public final class HerDB {
         // 删除herdb.lock的锁文件
         fsd.releaseDir();
     }
-    
-    // HerDB的put操作
-    public void put(byte[] key, byte[] value){
+
+    public <T>void put (String key, T value) {
+
+        byte[] keyBytes = key.getBytes();
+        byte[] valueBytes = serilization.serialize(value);
+        putInternal(keyBytes, valueBytes);
+    }
+
+    public <T> T get (String key) {
+        byte[] keyBytes = key.getBytes();
+        byte[] resultBytes = getInternal(keyBytes, null);
+        if(resultBytes == null)
+            return (T) null;
+        return serilization.deserialize(resultBytes);
+    }
+
+    // HerDB的put操作原生字节序列操作,所有的添加都要经过这一步
+    private void putInternal(byte[] key, byte[] value){
         
         // 先加入lru缓存中
         
@@ -140,7 +158,7 @@ public final class HerDB {
      * @param value 没查到时返回的默认值
      * @return
      */
-    public byte[] get(byte[] key, byte[] value){
+    private byte[] getInternal(byte[] key, byte[] value){
         
         byte [] results = null;
         
@@ -170,19 +188,17 @@ public final class HerDB {
         
         Configuration conf = Configuration.create("her");
         conf.set(Configuration.BUFFERED_BLOCK_SIZE, "4096");
-        
-        
+
         try {
             HerDB herdb = HerDB.openOnlyRead("her");
 //            HerDB herdb = HerDB.create(conf, "her");
-            long start = System.currentTimeMillis();
-            for(int i = 0; i < 1000000; i ++){
-//                herdb.put(("key123"+ i).getBytes(), ("value案件司法就是发动机案说法jijaijdiajdifjaojfdiaodfijaosjdfoiajdfoiajfdi"
-//                        + "ijaijsdfoiajodfjaojfiaoijdfoiajfidajfidojaoijdfiojfiajsidfjiasjdfijaidsfjaiojfiajdfidajsdifjaisdfa"+i).getBytes());
-              herdb.get(("key123" + (int)(Math.random()* 10000000)).getBytes(), null);
-            }
-            System.out.println(System.currentTimeMillis() - start);
-//            System.out.println(new String(herdb.get("node1231".getBytes(), "no".getBytes())));
+//            long start = System.currentTimeMillis();
+//            for(int i = 0; i < 1000; i ++){
+////                herdb.put("key123"+ i, ("value案件司法就是发动机案说法jijaijdiajdifjaojfdiaodfijaosjdfoiajdfoiajfdi"
+////                        + "ijaijsdfoiajodfjaojfiaoijdfoiajfidajfidojaoijdfiojfiajsidfjiasjdfijaidsfjaiojfiajdfidajsdifjaisdfa"+i));
+//            }
+            String result = (String)herdb.get("key1230");
+            System.out.println(result);
             herdb.commit();
         } catch (Exception e) {
             // TODO Auto-generated catch block

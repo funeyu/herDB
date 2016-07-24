@@ -1,57 +1,71 @@
 package serializer;
 
-import java.nio.ByteBuffer;
+import java.lang.reflect.Field;
 
 /**
  * Created by funeyu on 16/7/24.
  */
-public class SerializerImp implements Serializer {
+public final class SerializerImp implements Serializer {
 
-    @Override
-    public <T> byte[] serialize(T obj) {
+    private final StringSerializer stringSerializer = new StringSerializer();
 
-        return new byte[0];
+    private SerializerImp() {
+
     }
 
-    @Override
-    public <T> byte[] derialize(byte[] data, Class<T> clazz) {
-        return new byte[0];
+    public static SerializerImp build() {
+        return new SerializerImp();
     }
+
+    @Override public <T> byte[] serialize(T obj) {
+        if (obj == null) {
+            return new byte[0];
+        }
+        if(obj instanceof String) {
+            return stringSerializer.serialize(obj);
+        }
+        if(! obj.getClass().isPrimitive()) {
+            throw new IllegalArgumentException("only String and primitive value are supported!");
+        }
+
+        return PrimitiveType.EnumsClassMap.get(obj.getClass())
+                            .serialize(obj);
+    }
+
+    @Override public <T> T deserialize(byte[] data) {
+        byte id = data[0];
+        if(id == (byte)stringSerializer.id) {
+            // 为String类型的数据
+            return (T)stringSerializer.deserialize(data);
+        }
+        T result = PrimitiveType.EnumIdMap.get(id).deserialize(data, 1, data.length);
+        return result;
+    }
+
 
     private static class StringSerializer implements Serializer {
 
-        @Override
-        public <T> byte[] serialize(T obj) {
-            if(!(obj instanceof String)) {
-                throw new IllegalArgumentException("Only Strings are supported");
-            }
-            return new byte[0];
+        // 存储在磁盘中,为string的标记
+        private int id = 255;
+        private StringSerializer() {}
+
+        @Override public<String> byte[] serialize(String obj) {
+            byte[] objBytes = toBytes((java.lang.String) obj);
+            byte[] resultBytes = new byte[objBytes.length + 1];
+            System.arraycopy(new byte[]{(byte)id}, 0, resultBytes, 0, 1);
+            System.arraycopy(objBytes, 0, resultBytes, 1, objBytes.length);
+            return resultBytes;
         }
 
-        @Override
-        public <T> byte[] derialize(byte[] data, Class<T> clazz) {
-            return new byte[0];
+        @Override public String deserialize(byte[] data) {
+            byte[] dataBytes = new byte[data.length - 1];
+            System.arraycopy(data, 1, dataBytes, 0, dataBytes.length);
+            return new String(dataBytes);
         }
 
-
-        /**
-         * 用于String => bytes
-         * @param String
-         * @return
-         */
         private byte[] toBytes(String str) {
 
             return str.getBytes();
-        }
-
-        /**
-         * byte => String
-         * @param bytes
-         * @return
-         */
-        private String toChars(byte[] bytes) {
-
-            return new String(bytes);
         }
     }
 }
