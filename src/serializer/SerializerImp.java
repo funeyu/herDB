@@ -35,32 +35,23 @@ public class SerializerImp implements Serializer {
 
 
         /**
-         * 将char[]类型的数据转换成byte, 用于String => bytes
-         * @param chars
+         * 用于String => bytes
+         * @param String
          * @return
          */
-        private byte[] toBytes(char[] chars) {
-            ByteBuffer byteBuffer = ByteBuffer.allocate(chars.length * 2);
-            for (char c : chars) {
-                byteBuffer.putChar(c);
-            }
+        private byte[] toBytes(String str) {
 
-            return byteBuffer.array();
+            return str.getBytes();
         }
 
         /**
-         * 将byte数组转换成char类型数组用来byte => String
+         * byte => String
          * @param bytes
          * @return
          */
-        private char[] toChars(byte[] bytes) {
-            ByteBuffer byteBuffer = ByteBuffer.wrap(bytes);
-            char[] chars = new char[bytes.length / 2];
-            for (int i = 0, length = chars.length; i < length; i ++) {
-                chars[i] = byteBuffer.getChar();
-            }
+        private String toChars(byte[] bytes) {
 
-            return chars;
+            return new String(bytes);
         }
     }
 }
