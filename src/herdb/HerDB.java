@@ -193,9 +193,9 @@ public final class HerDB {
             HerDB herdb = HerDB.openOnlyRead("her");
 //            HerDB herdb = HerDB.create(conf, "her");
             for(int i = 0; i < 1000; i ++){
-              herdb.put("key123"+ i, (i % 2 == 0));
-                boolean result = (boolean)herdb.get("key123" + i);
-                System.out.println(result);
+//              herdb.put("key123"+ i, new int[]{i, i *2});
+                int[] result = (int[])herdb.get("key123" + i);
+                System.out.println(result[0] + ",,,,,," + result[1]);
             }
             herdb.commit();
         } catch (Exception e) {

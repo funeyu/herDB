@@ -20,6 +20,7 @@ class SerializerUtils {
         primitivesMap.put(Double.class, Boolean.TRUE);
         primitivesMap.put(Boolean.class, Boolean.TRUE);
         primitivesMap.put(Byte.class, Boolean.TRUE);
+        primitivesMap.put((new int[]{1}).getClass(), Boolean.TRUE);
     }
 
     public static boolean isPrimitive(Class clazz) {

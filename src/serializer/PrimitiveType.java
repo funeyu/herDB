@@ -160,12 +160,46 @@ enum PrimitiveType {
             float result = byteBuffer.getFloat();
             return new Float(result);
         }
+    },
+    INTARRAY {
+        @Override int weight() {
+            return 4;
+        }
+
+        @Override Class classify() {
+            return (new int[]{1}).getClass();
+        }
+
+        @Override <T> byte[] serialize(T obj) {
+            int[] intArray = (int[]) obj;
+            ByteBuffer bytes = ByteBuffer.allocate(1 + intArray.length * weight());
+            bytes.put((byte)id());
+
+            for(int i = 0, length = intArray.length; i < length; i ++) {
+                bytes.putInt(intArray[i]);
+            }
+            return bytes.array();
+        }
+
+        @Override int id() {
+            return 101;
+        }
+
+        @Override int[] deserialize(byte[] bytes, int off, int len) {
+            ByteBuffer byteBuffer = ByteBuffer.wrap(bytes, off, len);
+            int[] results =  new int[ len >> 2];
+            for(int i = 0, length = results.length; i < length; i ++) {
+                results[i] = byteBuffer.getInt();
+            }
+            return results;
+        }
     };
 
     // 根据Class类型去获取相应的PrimitiveType
     public final static HashMap<Class, PrimitiveType> EnumsClassMap = new HashMap<>();
 
     public final static HashMap<Integer, PrimitiveType> EnumIdMap = new HashMap<>();
+
     static {
         for(PrimitiveType type : PrimitiveType.values()) {
             EnumsClassMap.put(type.classify(), type);
