@@ -21,3 +21,6 @@ local.properties
 *.launch
 /.DS_Store
 .idea/
+*.iml
+/out
+/her
