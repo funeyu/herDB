@@ -40,12 +40,14 @@ enum PrimitiveType {
             return Integer.class;
         }
         @Override <T> byte[] serialize(T value) {
+
             ByteBuffer bytes = ByteBuffer.allocate(1 + weight());
             bytes.put((byte)id());
             bytes.putInt(((Integer)value).intValue());
             return bytes.array();
         }
         @Override Integer deserialize(byte[] bytes, int off, int len) {
+
             ByteBuffer byteBuffer = ByteBuffer.wrap(bytes, off, len);
             int result = byteBuffer.getInt();
             return new Integer(result);

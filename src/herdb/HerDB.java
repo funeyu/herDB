@@ -192,13 +192,11 @@ public final class HerDB {
         try {
             HerDB herdb = HerDB.openOnlyRead("her");
 //            HerDB herdb = HerDB.create(conf, "her");
-//            long start = System.currentTimeMillis();
-//            for(int i = 0; i < 1000; i ++){
-////                herdb.put("key123"+ i, ("value案件司法就是发动机案说法jijaijdiajdifjaojfdiaodfijaosjdfoiajdfoiajfdi"
-////                        + "ijaijsdfoiajodfjaojfiaoijdfoiajfidajfidojaoijdfiojfiajsidfjiasjdfijaidsfjaiojfiajdfidajsdifjaisdfa"+i));
-//            }
-            String result = (String)herdb.get("key1230");
-            System.out.println(result);
+            for(int i = 0; i < 1000; i ++){
+              herdb.put("key123"+ i, (i % 2 == 0));
+                boolean result = (boolean)herdb.get("key123" + i);
+                System.out.println(result);
+            }
             herdb.commit();
         } catch (Exception e) {
             // TODO Auto-generated catch block

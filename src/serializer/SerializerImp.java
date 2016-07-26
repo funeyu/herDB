@@ -1,7 +1,5 @@
 package serializer;
 
-import java.lang.reflect.Field;
-
 /**
  * Created by funeyu on 16/7/24.
  */
@@ -24,7 +22,9 @@ public final class SerializerImp implements Serializer {
         if(obj instanceof String) {
             return stringSerializer.serialize(obj);
         }
-        if(! obj.getClass().isPrimitive()) {
+        // 判断是否为基本类型的数据,note: Integer.class.isPrimitive()返回为false;
+        if(! SerializerUtils.isPrimitive(obj.getClass())) {
+            System.out.println(obj.getClass());
             throw new IllegalArgumentException("only String and primitive value are supported!");
         }
 
@@ -38,7 +38,8 @@ public final class SerializerImp implements Serializer {
             // 为String类型的数据
             return (T)stringSerializer.deserialize(data);
         }
-        T result = PrimitiveType.EnumIdMap.get(id).deserialize(data, 1, data.length);
+        T result = PrimitiveType.EnumIdMap.get(new Integer(id))
+                   .deserialize(data, 1, data.length - 1);
         return result;
     }
 
