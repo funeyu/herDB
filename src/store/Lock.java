@@ -5,21 +5,21 @@ public abstract class Lock {
 
     /**
      * 获取锁的方法，这里是一次尝试获取，若要多次尝试需写while循环
-     * 
+     *
      * @return
      */
     protected abstract boolean acquire();
 
     /**
      * 释放锁的方法，这里是一次释放就可以
-     * 
+     *
      * @return
      */
     public abstract void release();
 
     /**
      * 尝试多次获取锁，若经过仍没能获取成功就直接返回false
-     * 
+     *
      * @return
      * @throws Exception
      */

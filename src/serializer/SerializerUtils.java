@@ -10,7 +10,7 @@ import java.util.HashMap;
  */
 class SerializerUtils {
 
-    private final static HashMap<Class, Boolean>  primitivesMap = new HashMap();
+    private final static HashMap<Class, Boolean> primitivesMap = new HashMap();
 
     static {
         primitivesMap.put(Integer.class, Boolean.TRUE);
@@ -24,10 +24,10 @@ class SerializerUtils {
     }
 
     public static boolean isPrimitive(Class clazz) {
-        if(clazz.isPrimitive()) {
+        if (clazz.isPrimitive()) {
             return true;
         }
-        if(primitivesMap.containsKey(clazz)) {
+        if (primitivesMap.containsKey(clazz)) {
             return true;
         }
         return false;
