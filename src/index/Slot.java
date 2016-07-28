@@ -10,25 +10,25 @@ import utils.NumberPacker;
  * <--hashcode-->|<--fileposition-->|<--attachedslot-->
  * ----4字节-----------5字节----------------4字节--------
  * </pre>
-
- *  此时的Slot相当于static unit class
- * 
- * @author funeyu
+ * <p>
+ * 此时的Slot相当于static unit class
  *
+ * @author funeyu
  */
 public final class Slot {
     // 每个slot
     public final static int slotSize = (4 + 5 + 4);
 
     private Slot() {
-    };
+    }
+
+    ;
 
     /**
      * 由hc fp as三个参数去组装成一个byte[slotSize]
-     * 
+     *
      * @param hashcode
-     * @param fileposition
-     *            5 byte长度的long数 最大值为 256^5 1T
+     * @param fileposition 5 byte长度的long数 最大值为 256^5 1T
      * @param attachedslot
      */
     public static byte[] generate(int hashcode, long fileposition, int attachedslot) {
@@ -52,11 +52,10 @@ public final class Slot {
 
     /**
      * 设置索引号为slot的槽attachedSlot 值为attachedslot
-     * 
+     *
      * @param slot
      * @param attachedslot
-     * @param bytes
-     *            为索引的全量内存数据
+     * @param bytes        为索引的全量内存数据
      */
     public static void setAttachedSlot(int slot, int attachedslot, byte[] bytes) {
 
@@ -66,10 +65,10 @@ public final class Slot {
         }
     }
 
-    
+
     /**
      * 获取该slot下 相对应key的hashcode
-     * 
+     *
      * @param bytes
      * @return
      */
@@ -80,7 +79,7 @@ public final class Slot {
 
     /**
      * 获取hash索引某slots对应的file文件位置信息
-     * 
+     *
      * @param bytes
      * @return
      */
@@ -91,7 +90,7 @@ public final class Slot {
 
     /**
      * 获取该slot的后继slot的id
-     * 
+     *
      * @param bytes
      * @return
      */
