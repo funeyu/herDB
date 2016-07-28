@@ -122,7 +122,7 @@ enum PrimitiveType {
             ByteBuffer bytes = ByteBuffer.allocate(1 + weight());
             bytes.put((byte)id());
             bytes.put(((Boolean)obj).booleanValue() ? (byte)1 : (byte)0);
-            return new byte[0];
+            return bytes.array();
         }
 
         @Override int id() {
