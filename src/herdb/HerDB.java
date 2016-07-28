@@ -158,7 +158,7 @@ public final class HerDB {
         byte[] keyBytes = key.getBytes();
         return getInternal(keyBytes, null);
     }
-    
+
     // HerDB的put操作原生字节序列操作,所有的添加都要经过这一步
     private void putInternal(byte[] key, byte[] value) {
 
