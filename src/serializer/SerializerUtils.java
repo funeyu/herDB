@@ -1,8 +1,5 @@
 package serializer;
 
-import com.sun.org.apache.xpath.internal.operations.Bool;
-import com.sun.tools.corba.se.idl.constExpr.BooleanNot;
-
 import java.util.HashMap;
 
 /**
