@@ -1,10 +1,12 @@
 package herdb;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Objects;
 
 import cache.StorageCache;
+import com.sun.org.apache.xpath.internal.operations.Bool;
 import index.IndexSegment;
 import serializer.SerializerImp;
 import store.FSDirectory;
@@ -15,6 +17,8 @@ public final class HerDB {
     private IndexSegment[] segments;
     private FSDirectory fsd;
     private StorageCache cache;
+    private static String DIRECTORY = "herDB";
+    private static String CONFIG = "herDB.conf";
 
     private SerializerImp serilization = SerializerImp.build();
 
@@ -201,6 +205,28 @@ public final class HerDB {
         return Arrays.hashCode(key) & conf.get(Configuration.SEGMENTS_SIZE) - 1;
     }
 
+    // 判断herDB是否存在
+    private static boolean isCreated() {
+        File directory = new File(DIRECTORY);
+        File f = new File(directory.getPath(), CONFIG);
+        return f.exists() ? true : false;
+    }
+    /**
+     * 创建一个HerDB实例
+     * @param lruON
+     * @param blockSize
+     * @return
+     */
+    public static HerDB bootStrap(Boolean lruON, int blockSize) throws Exception {
+        if(isCreated()) {
+            return HerDB.open(DIRECTORY);
+        }
+
+        Configuration conf = Configuration.create(CONFIG);
+        conf.set(Configuration.BUFFERED_BLOCK_SIZE, blockSize + "");
+        conf.set(Configuration.IS_CACHE_ON, lruON + "");
+        return HerDB.create(conf, DIRECTORY);
+    }
 
     // code example
     public static void main(String[] args) {
