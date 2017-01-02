@@ -23,4 +23,4 @@ local.properties
 .idea/
 *.iml
 /out
-/her
+/herDB
