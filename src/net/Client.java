@@ -93,8 +93,14 @@ public class Client {
         try {
             Client client = Client.initClient(8888, "127.0.0.1");
             client.auth("funer");
+            Long start = System.currentTimeMillis();
+            for(int i = 10000; i < 100000; i++) {
+                client.put("fuheyu"+ i, "java c" + i);
+            }
+            Long end = System.currentTimeMillis();
+            System.out.println((end-start) / 1000);
 //            client.put("fuheyu", "java c art");
-            System.out.println(client.get("fuheyu"));
+            System.out.println(client.get("fuheyu0"));
 
             client.close();
 //            client.put("funer", "java, eclipse");
