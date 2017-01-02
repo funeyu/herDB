@@ -77,6 +77,7 @@ public class Client {
             in.read(lenBytes);
             int bytesLen = NumberPacker.unpackInt(lenBytes);
             byte[] rawContent = new byte[bytesLen];
+            in.read(rawContent);
             String result = new String(rawContent);
             return result;
 

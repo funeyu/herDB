@@ -156,7 +156,6 @@ public class Server {
             if (authedClients.get(uuid) == null) {
                 if (commandsInfo[0].equals("auth")) {
                     if(commandsInfo[1].equals("funer")) {
-                        System.out.println("funnnnnnnnnn");
                         authedClients.put(uuid, Boolean.TRUE);
                         sc.write(wrapOutData("success: in auth"));
                         key.interestOps(SelectionKey.OP_READ);
