@@ -222,30 +222,10 @@ public final class HerDB {
             return HerDB.open(DIRECTORY);
         }
 
-        Configuration conf = Configuration.create(CONFIG);
+        Configuration conf = Configuration.create(DIRECTORY);
         conf.set(Configuration.BUFFERED_BLOCK_SIZE, blockSize + "");
-        conf.set(Configuration.IS_CACHE_ON, lruON + "");
+        conf.setOnOff(Configuration.IS_CACHE_ON, lruON);
         return HerDB.create(conf, DIRECTORY);
     }
 
-    // code example
-    public static void main(String[] args) {
-
-        Configuration conf = Configuration.create("her");
-        conf.set(Configuration.BUFFERED_BLOCK_SIZE, "4096");
-
-        try {
-            HerDB herdb = HerDB.openOnlyRead("her");
-//            HerDB herdb = HerDB.create(conf, "her");
-            for (int i = 0; i < 1000; i++) {
-//              herdb.put("key123"+ i, false);
-                boolean result = (boolean) herdb.get("key123" + i);
-                System.out.println(result);
-            }
-            herdb.commit();
-        } catch (Exception e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-    }
 }

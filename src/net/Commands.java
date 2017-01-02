@@ -8,7 +8,7 @@ import herdb.HerDB;
  */
 public class Commands {
 
-    public static byte[] get(String key, HerDB dbStore) {
+    public static String get(String key, HerDB dbStore) {
         return dbStore.get(key);
     }
 
