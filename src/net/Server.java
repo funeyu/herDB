@@ -66,7 +66,6 @@ public class Server {
                     if(n == 0) { //没有指定的I/O事件发生
                         continue;
                     }
-                    System.out.println("Size:" + selector.selectedKeys().size());
                     Iterator<SelectionKey> selectionKeys = selector.selectedKeys().iterator();
                     while(selectionKeys.hasNext()) {
                         SelectionKey key = selectionKeys.next();
@@ -80,7 +79,6 @@ public class Server {
                         }
 
                         if(key.isReadable() && key.isValid()) {
-                            System.out.println("readable");
                             doRead(key);
                         }
 
@@ -143,7 +141,6 @@ public class Server {
          * @param uuid
          */
         private void handleCommand(SelectionKey key, byte[] commands, String uuid) throws IOException{
-            System.out.println(new String(commands));
             SocketChannel sc = (SocketChannel)key.channel();
             String[] commandsInfo = new String(commands).split(",");
             // 命令行数据格式不对
@@ -178,15 +175,12 @@ public class Server {
                     key.interestOps(SelectionKey.OP_READ);
                     return ;
                 }
-                System.out.println("get Result:" + result);
                 sc.write(wrapOutData(result));
                 key.interestOps(SelectionKey.OP_READ);
             }
             // put请求的处理
             if(commandsInfo[0].equals("put")) {
-                System.out.println(commandsInfo.length);
                 Commands.put(commandsInfo[1], commandsInfo[2], dbStore);
-                sc.write(wrapOutData("success"));
                 key.interestOps(SelectionKey.OP_READ);
             }
         }
