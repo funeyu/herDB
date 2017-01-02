@@ -1,10 +1,12 @@
 package herdb;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Objects;
 
 import cache.StorageCache;
+import com.sun.org.apache.xpath.internal.operations.Bool;
 import index.IndexSegment;
 import serializer.SerializerImp;
 import store.FSDirectory;
@@ -15,6 +17,8 @@ public final class HerDB {
     private IndexSegment[] segments;
     private FSDirectory fsd;
     private StorageCache cache;
+    private static String DIRECTORY = "herDB";
+    private static String CONFIG = "herDB.conf";
 
     private SerializerImp serilization = SerializerImp.build();
 
@@ -201,25 +205,27 @@ public final class HerDB {
         return Arrays.hashCode(key) & conf.get(Configuration.SEGMENTS_SIZE) - 1;
     }
 
-
-    // code example
-    public static void main(String[] args) {
-
-        Configuration conf = Configuration.create("her");
-        conf.set(Configuration.BUFFERED_BLOCK_SIZE, "4096");
-
-        try {
-            HerDB herdb = HerDB.openOnlyRead("her");
-//            HerDB herdb = HerDB.create(conf, "her");
-            for (int i = 0; i < 1000; i++) {
-//              herdb.put("key123"+ i, false);
-                boolean result = (boolean) herdb.get("key123" + i);
-                System.out.println(result);
-            }
-            herdb.commit();
-        } catch (Exception e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
+    // 判断herDB是否存在
+    private static boolean isCreated() {
+        File directory = new File(DIRECTORY);
+        File f = new File(directory.getPath(), CONFIG);
+        return f.exists() ? true : false;
     }
+    /**
+     * 创建一个HerDB实例
+     * @param lruON
+     * @param blockSize
+     * @return
+     */
+    public static HerDB bootStrap(Boolean lruON, int blockSize) throws Exception {
+        if(isCreated()) {
+            return HerDB.open(DIRECTORY);
+        }
+
+        Configuration conf = Configuration.create(DIRECTORY);
+        conf.set(Configuration.BUFFERED_BLOCK_SIZE, blockSize + "");
+        conf.setOnOff(Configuration.IS_CACHE_ON, lruON);
+        return HerDB.create(conf, DIRECTORY);
+    }
+
 }

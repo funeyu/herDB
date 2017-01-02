@@ -58,7 +58,7 @@ public class FSDirectory {
         lock.release();
     }
 
-    public boolean isExsit(String pathName) {
+    public boolean  isExsit(String pathName) {
 
         File f = new File(directory.getPath(), pathName);
         return f.exists() ? true : false;
