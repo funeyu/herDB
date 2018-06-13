@@ -8,8 +8,8 @@
 ## code samples
 怎样创建herDB
 ``` java
-  // "herdb"为目录名
-  Configuration conf = Configuration.create("herdb");
+  // "main.java.org.herDB.herdb"为目录名
+  Configuration conf = Configuration.create("main.java.org.herDB.herdb");
   
   // 初始的情况下，slots的数组的大小
   conf.set(Configuration.SLOTS_CAPACITY, "65536");
@@ -23,35 +23,35 @@
   // 设置key/value数据的最大长度
   conf.set(Configuration.ITEM_DATA_MAX_SIZE, "1024");
   
-  // 参数“herdb”是目录名
-  HerDB herdb = HerDB.create(conf, "herdb");
+  // 参数“main.java.org.herDB.herdb”是目录名
+  HerDB main.java.org.herDB.herdb = HerDB.create(conf, "main.java.org.herDB.herdb");
   
-  herdb.put("china".getBytes(), "beijing".getBytes());
-  herdb.put("wuhan".getBytes(), "donghu".getBytes());
+  main.java.org.herDB.herdb.put("china".getBytes(), "beijing".getBytes());
+  main.java.org.herDB.herdb.put("wuhan".getBytes(), "donghu".getBytes());
   
   ......
   
-  herdb.commit();
+  main.java.org.herDB.herdb.commit();
 ```
 + 每次创建一个herDB，在完成相关的操作后最后都要调用commit()方法
-+ 创建配置文件的时候可以不用调用set方法；`Configuration conf = Configuration.create("herdb")`直接得到一个默认配置的文件；
++ 创建配置文件的时候可以不用调用set方法；`Configuration conf = Configuration.create("main.java.org.herDB.herdb")`直接得到一个默认配置的文件；
 如能估计到数据体量时，可以先将`Configuration.SLOTS_CAPACITY`的属性设置的大些，这样子就可以减少`resize()`的次数，提高性能。
 
 打开一个已有的herdb数据库,可以再进行put get操作：
 ``` java
-HerDB herdb = HerDB.open("herdb");
+HerDB main.java.org.herDB.herdb = HerDB.open("main.java.org.herDB.herdb");
 
-herdb.put("wuhan".getBytes(), "donghu".getBytes());
-herdb.get("china".getBytes())
+main.java.org.herDB.herdb.put("wuhan".getBytes(), "donghu".getBytes());
+main.java.org.herDB.herdb.get("china".getBytes())
 blablabla......
 
-herdb.commit();
+main.java.org.herDB.herdb.commit();
 ```
 
 加快随机读的方法:
 ``` java
 // 只读模式下将herdb文件映射到内存加快随机读
-HerDB herdb = HerDB.openOnlyRead("herdb");
+HerDB main.java.org.herDB.herdb = HerDB.openOnlyRead("main.java.org.herDB.herdb");
 herDB.get("china".getBytes())
 ```
 
@@ -62,17 +62,17 @@ herDB.get("china".getBytes())
 + 硬盘: 1T的机械硬盘
 添加数据的速度测试：
 ``` java
-Configuration conf = Configuration.create("herdb");
+Configuration conf = Configuration.create("main.java.org.herDB.herdb");
 conf.set(Configuration.BUFFERED_BLOCK_SIZE, "4096");
 try {
-    HerDB herdb = HerDB.create(conf, "herdb");
+    HerDB main.java.org.herDB.herdb = HerDB.create(conf, "main.java.org.herDB.herdb");
     long start = System.currentTimeMillis();
     for(int i = 0; i < 10000000; i ++){
-    herdb.put(("key123"+ i).getBytes(), ("value案件司法就是发动机案说法jijaijdiajdifjaojfdiaodfijaosjdfoiajdfoiajfdi"
+    main.java.org.herDB.herdb.put(("key123"+ i).getBytes(), ("value案件司法就是发动机案说法jijaijdiajdifjaojfdiaodfijaosjdfoiajdfoiajfdi"
                         + "ijaijsdfoiajodfjaojfiaoijdfoiajfidajfidojaoijdfiojfiajsidfjiasjdfijaidsfjaiojfiajdfidajsdifjaisdfa"+i).getBytes());
             }
     System.out.println(System.currentTimeMillis() - start);
-    herdb.commit();
+    main.java.org.herDB.herdb.commit();
   } catch (Exception e) {
     e.printStackTrace();
   }
@@ -82,13 +82,13 @@ try {
 随机读写的性能，针对上面的添加数据，在内存映射下只读模式测试：
 ``` java
 try {
-  HerDB herdb = HerDB.openOnlyRead("herdb");
+  HerDB main.java.org.herDB.herdb = HerDB.openOnlyRead("main.java.org.herDB.herdb");
   long start = System.currentTimeMillis();
   for(int i = 0; i < 10000000; i ++){
-    herdb.get(("key123" + (int)(Math.random()* 10000000)).getBytes(), null);
+    main.java.org.herDB.herdb.get(("key123" + (int)(Math.random()* 10000000)).getBytes(), null);
   }
   System.out.println(System.currentTimeMillis() - start);
-  herdb.commit();
+  main.java.org.herDB.herdb.commit();
   } catch (Exception e) {     
     e.printStackTrace();
   }
